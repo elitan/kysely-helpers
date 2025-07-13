@@ -160,7 +160,7 @@ BEGIN
             id SERIAL PRIMARY KEY,
             document_id INTEGER REFERENCES documents(id),
             content TEXT NOT NULL,
-            embedding vector(384), -- 384-dimensional embeddings
+            embedding vector(5), -- 5-dimensional embeddings for testing
             metadata JSONB DEFAULT '{}',
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
         );

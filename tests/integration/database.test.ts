@@ -47,13 +47,16 @@ interface TestDatabase {
   }
 }
 
-// Database connection config
-const DB_CONFIG = {
+// Database connection config - use environment variable or defaults
+const DATABASE_URL = process.env.DATABASE_URL
+const DB_CONFIG = DATABASE_URL ? {
+  connectionString: DATABASE_URL
+} : {
   host: 'localhost',
   port: 15432,
   database: 'kysely_test',
-  user: 'kysely_user',
-  password: 'kysely_password',
+  user: 'postgres',
+  password: 'postgres',
 }
 
 let db: Kysely<TestDatabase>

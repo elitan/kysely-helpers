@@ -21,7 +21,7 @@
     "dev": "bun --watch src/index.ts",
     "test": "bun test tests/unit/",
     "test:watch": "bun test tests/unit/ --watch",
-    "test:integration": "bun test tests/integration/",
+    "test:integration": "DATABASE_URL=postgres://postgres:postgres@localhost:15432/kysely_test bun test tests/integration/",
     "test:all": "bun test",
     "db:up": "docker-compose up -d postgres",
     "db:down": "docker-compose down",
