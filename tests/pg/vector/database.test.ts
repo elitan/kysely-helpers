@@ -750,6 +750,97 @@ describe('Vector Database Integration', () => {
     })
   })
 
+  describe('toArray() database operations', () => {
+    itWithVector('converts PostgreSQL vector strings to JavaScript arrays', async () => {
+      const results = await db
+        .selectFrom('document_embeddings')
+        .select([
+          'id',
+          'content',
+          'embedding',
+          pg.vector('embedding').toArray().as('embedding_array')
+        ])
+        .limit(3)
+        .execute()
+
+      expect(Array.isArray(results)).toBe(true)
+      
+      if (results.length > 0) {
+        for (const result of results) {
+          // Original embedding should be string format
+          expect(typeof result.embedding).toBe('string')
+          expect(result.embedding).toMatch(/^\[[\d.,]+\]$/)
+          
+          // toArray() should return actual JavaScript array
+          expect(Array.isArray(result.embedding_array)).toBe(true)
+          expect(result.embedding_array.length).toBeGreaterThan(0)
+          
+          // All elements should be numbers
+          for (const value of result.embedding_array) {
+            expect(typeof value).toBe('number')
+          }
+          
+          // Array should match the string content
+          const expectedArray = result.embedding
+            .slice(1, -1) // Remove brackets
+            .split(',')
+            .map(Number)
+          
+          expect(result.embedding_array).toEqual(expectedArray)
+        }
+      }
+    })
+
+    itWithVector('toArray() works in complex queries with distance operations', async () => {
+      const searchVector = [0.1, 0.2, 0.3, 0.4, 0.5]
+      
+      const results = await db
+        .selectFrom('document_embeddings')
+        .select([
+          'id',
+          'content',
+          pg.vector('embedding').toArray().as('embedding_array'),
+          pg.vector('embedding').distance(searchVector).as('distance')
+        ])
+        .where(pg.vector('embedding').distance(searchVector), '<', 1.0)
+        .orderBy('distance')
+        .limit(2)
+        .execute()
+
+      expect(Array.isArray(results)).toBe(true)
+      
+      for (const result of results) {
+        expect(Array.isArray(result.embedding_array)).toBe(true)
+        expect(typeof result.distance).toBe('number')
+        expect(result.distance).toBeGreaterThanOrEqual(0)
+        
+        // Array should have proper dimensions
+        expect(result.embedding_array.length).toBe(5)
+      }
+    })
+
+    itWithVector('toArray() works with JOINs', async () => {
+      const results = await db
+        .selectFrom('document_embeddings')
+        .innerJoin('documents', 'document_embeddings.document_id', 'documents.id')
+        .select([
+          'documents.title',
+          'document_embeddings.content',
+          pg.vector('document_embeddings.embedding').toArray().as('embedding_array')
+        ])
+        .limit(2)
+        .execute()
+
+      expect(Array.isArray(results)).toBe(true)
+      
+      for (const result of results) {
+        expect(result.title).toBeDefined()
+        expect(Array.isArray(result.embedding_array)).toBe(true)
+        expect(result.embedding_array.length).toBeGreaterThan(0)
+      }
+    })
+  })
+
   describe('Data manipulation with vectors', () => {
     itWithVector('insert and query vector data', async () => {
       const testEmbedding = [0.9, 0.8, 0.7, 0.6, 0.5]

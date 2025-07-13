@@ -15,6 +15,23 @@ import { sql, type Expression, type RawBuilder } from 'kysely'
  */
 export interface VectorOperations {
   /**
+   * Convert PostgreSQL vector string to JavaScript array
+   * Converts "[0.1,0.2,0.3]" to [0.1, 0.2, 0.3]
+   * 
+   * @example
+   * ```ts
+   * .select([
+   *   'id',
+   *   pg.vector('embedding').toArray().as('embedding')
+   * ])
+   * // Result: { id: 1, embedding: [0.1, 0.2, 0.3] }
+   * ```
+   * 
+   * Generates: `string_to_array(trim(embedding::text, '[]'), ',')::float[]`
+   */
+  toArray(): RawBuilder<number[]>
+
+  /**
    * L2 distance operator (<->)
    * Euclidean distance between vectors
    * 
@@ -180,6 +197,10 @@ export function vector(column: string): VectorOperations {
   const columnRef = sql.ref(column)
 
   return {
+    toArray: () => {
+      return sql<number[]>`string_to_array(trim(${columnRef}::text, '[]'), ',')::float[]`
+    },
+
     distance: (otherVector: number[]) => {
       const vectorStr = `[${otherVector.join(',')}]`
       return sql<number>`${columnRef} <-> ${vectorStr}::vector`

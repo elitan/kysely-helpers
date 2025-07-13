@@ -16,6 +16,7 @@ describe('Vector API Tests', () => {
       const vectorOps = pg.vector('embedding')
       
       // Verify all required methods exist
+      expect(typeof vectorOps.toArray).toBe('function')
       expect(typeof vectorOps.distance).toBe('function')
       expect(typeof vectorOps.l2Distance).toBe('function')
       expect(typeof vectorOps.innerProduct).toBe('function')
@@ -38,6 +39,7 @@ describe('Vector API Tests', () => {
       
       // All expressions should be objects (Expression interface)
       const expressions = [
+        vectorOps.toArray(),
         vectorOps.distance(testVector),
         vectorOps.l2Distance(testVector),
         vectorOps.innerProduct(testVector),
@@ -344,6 +346,46 @@ describe('Vector API Tests', () => {
         vectorOps.innerProduct(searchVector)
         vectorOps.dimensions()
       }).not.toThrow()
+    })
+  })
+
+  describe('toArray() method', () => {
+    test('toArray() returns RawBuilder for number array', () => {
+      const vectorOps = pg.vector('embedding')
+      const toArrayExpr = vectorOps.toArray()
+      
+      expect(typeof toArrayExpr).toBe('object')
+      expect(toArrayExpr).not.toBeNull()
+    })
+
+    test('toArray() works with different column formats', () => {
+      expect(() => pg.vector('embedding').toArray()).not.toThrow()
+      expect(() => pg.vector('documents.embedding').toArray()).not.toThrow()
+      expect(() => pg.vector('d.content_embedding').toArray()).not.toThrow()
+    })
+
+    test('toArray() can be used in select expressions', () => {
+      const vectorOps = pg.vector('embedding')
+      
+      expect(() => {
+        // Simulate usage in a select clause
+        const selectExpressions = [
+          vectorOps.toArray(),
+          vectorOps.distance([0.1, 0.2, 0.3]),
+          vectorOps.dimensions()
+        ]
+        
+        expect(selectExpressions).toHaveLength(3)
+        selectExpressions.forEach(expr => {
+          expect(typeof expr).toBe('object')
+        })
+      }).not.toThrow()
+    })
+
+    test('toArray() works with qualified column names', () => {
+      const qualifiedOps = pg.vector('document_embeddings.embedding')
+      
+      expect(() => qualifiedOps.toArray()).not.toThrow()
     })
   })
 })
