@@ -25,10 +25,6 @@ jobs:
         ports:
           - 5432:5432
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

@@ -193,22 +193,31 @@ $$;
 
 -- Create a view for easy testing
 CREATE VIEW test_statistics AS
-SELECT 
-    'products' as table_name,
-    count(*) as row_count,
-    array_agg(DISTINCT unnest(tags)) as all_tags
-FROM products
+WITH products_stats AS (
+    SELECT 
+        'products' as table_name,
+        count(*) as row_count,
+        array_agg(DISTINCT tag) as all_tags
+    FROM products, unnest(tags) as tag
+),
+documents_stats AS (
+    SELECT 
+        'documents' as table_name,
+        count(*) as row_count,
+        array_agg(DISTINCT tag) as all_tags
+    FROM documents, unnest(tags) as tag
+),
+users_stats AS (
+    SELECT 
+        'users' as table_name,
+        count(*) as row_count,
+        array_agg(DISTINCT role) as all_tags
+    FROM users, unnest(roles) as role
+)
+SELECT * FROM products_stats
 UNION ALL
-SELECT 
-    'documents' as table_name,
-    count(*) as row_count,
-    array_agg(DISTINCT unnest(tags)) as all_tags
-FROM documents
+SELECT * FROM documents_stats
 UNION ALL
-SELECT 
-    'users' as table_name,
-    count(*) as row_count,
-    array_agg(DISTINCT unnest(roles)) as all_tags
-FROM users;
+SELECT * FROM users_stats;
 
 ANALYZE; -- Update statistics for better query planning
