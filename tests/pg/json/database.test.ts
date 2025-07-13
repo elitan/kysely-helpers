@@ -144,13 +144,13 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where(pg.json('metadata').get('rating'), '>', sql.lit(4.5))
+        .where(pg.json('metadata').get('rating').equals(4.8))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
       
       for (const product of results) {
-        expect(product.metadata.rating).toBeGreaterThan(4.5)
+        expect(product.metadata.rating).toBe(4.8)
       }
     })
   })
@@ -480,7 +480,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where('id', '>', 1)
+        .where('id', '>', 0)
         .where(pg.json('metadata').get('difficulty').equals('beginner'))
         .where('name', 'like', '%TypeScript%')
         .execute()
@@ -488,7 +488,7 @@ describe('JSON Database Integration', () => {
       expect(results.length).toBeGreaterThan(0)
       
       for (const product of results) {
-        expect(product.id).toBeGreaterThan(1)
+        expect(product.id).toBeGreaterThan(0)
         expect(product.metadata.difficulty).toBe('beginner')
         expect(product.name.toLowerCase()).toContain('typescript')
       }

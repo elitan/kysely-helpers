@@ -121,6 +121,35 @@ export interface VectorOperations {
 }
 
 /**
+ * Create a vector value for inserting embeddings into PostgreSQL
+ * 
+ * @param embedding Array of numbers representing the embedding from OpenAI, Anthropic, etc.
+ * @returns SQL expression for inserting vector data
+ * 
+ * @example
+ * ```ts
+ * import { pg } from 'kysely-helpers'
+ * 
+ * const embedding = await openai.embeddings.create({
+ *   model: "text-embedding-3-small",
+ *   input: "Hello world"
+ * })
+ * 
+ * await db
+ *   .insertInto('documents')
+ *   .values({
+ *     title: 'My Document',
+ *     content: text,
+ *     embedding: pg.embedding(embedding.data[0].embedding)
+ *   })
+ *   .execute()
+ * ```
+ */
+export function embedding(embedding: number[]): RawBuilder<any> {
+  return sql.raw(`'[${embedding.join(',')}]'::vector`)
+}
+
+/**
  * Create PostgreSQL vector operations for a column
  * 
  * @param column Column name or expression
@@ -152,19 +181,23 @@ export function vector(column: string): VectorOperations {
 
   return {
     distance: (otherVector: number[]) => {
-      return sql<number>`${columnRef} <-> ARRAY[${sql.join(otherVector)}]`
+      const vectorStr = `[${otherVector.join(',')}]`
+      return sql<number>`${columnRef} <-> ${vectorStr}::vector`
     },
 
     l2Distance: (otherVector: number[]) => {
-      return sql<number>`${columnRef} <-> ARRAY[${sql.join(otherVector)}]`
+      const vectorStr = `[${otherVector.join(',')}]`
+      return sql<number>`${columnRef} <-> ${vectorStr}::vector`
     },
 
     innerProduct: (otherVector: number[]) => {
-      return sql<number>`${columnRef} <#> ARRAY[${sql.join(otherVector)}]`
+      const vectorStr = `[${otherVector.join(',')}]`
+      return sql<number>`${columnRef} <#> ${vectorStr}::vector`
     },
 
     cosineDistance: (otherVector: number[]) => {
-      return sql<number>`${columnRef} <=> ARRAY[${sql.join(otherVector)}]`
+      const vectorStr = `[${otherVector.join(',')}]`
+      return sql<number>`${columnRef} <=> ${vectorStr}::vector`
     },
 
     similarTo: (
@@ -182,11 +215,12 @@ export function vector(column: string): VectorOperations {
       const compareOp = method === 'inner' ? '>' : '<'
       const thresholdValue = method === 'inner' ? threshold : (1 - threshold)
       
-      return sql<boolean>`${columnRef} ${sql.raw(operator)} ARRAY[${sql.join(otherVector)}] ${sql.raw(compareOp)} ${thresholdValue}`
+      const vectorStr = `[${otherVector.join(',')}]`
+      return sql<boolean>`${columnRef} ${sql.raw(operator)} ${vectorStr}::vector ${sql.raw(compareOp)} ${thresholdValue}`
     },
 
     dimensions: () => {
-      return sql<number>`array_length(${columnRef}, 1)`
+      return sql<number>`vector_dims(${columnRef})`
     },
 
     norm: () => {
@@ -195,7 +229,7 @@ export function vector(column: string): VectorOperations {
 
     sameDimensions: (otherVector: Expression<any> | string) => {
       const otherRef = typeof otherVector === 'string' ? sql.ref(otherVector) : otherVector
-      return sql<boolean>`array_length(${columnRef}, 1) = array_length(${otherRef}, 1)`
+      return sql<boolean>`vector_dims(${columnRef}) = vector_dims(${otherRef})`
     }
   }
 }

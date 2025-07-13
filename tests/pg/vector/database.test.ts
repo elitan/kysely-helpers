@@ -88,7 +88,13 @@ afterAll(async () => {
 
 describe('Vector Database Integration', () => {
   // Only run these if we have pgvector available
-  const itWithVector = pgvectorAvailable ? test : test.skip
+  const itWithVector = (name: string, fn: () => Promise<void>) => {
+    if (pgvectorAvailable) {
+      test(name, fn)
+    } else {
+      test.skip(name, fn)
+    }
+  }
 
   describe('distance() database operations', () => {
     itWithVector('finds documents by L2 distance', async () => {
@@ -643,10 +649,8 @@ describe('Vector Database Integration', () => {
           pg.vector('embedding').cosineDistance(searchVector).as('cosine_score'),
           pg.vector('embedding').innerProduct(searchVector).as('inner_score')
         ])
-        .orderBy([
-          { column: 'cosine_score', order: 'asc' },
-          { column: 'l2_score', order: 'asc' }
-        ])
+        .orderBy('cosine_score', 'asc')
+        .orderBy('l2_score', 'asc')
         .limit(3)
         .execute()
 
@@ -677,12 +681,12 @@ describe('Vector Database Integration', () => {
 
       expect(results).toBeDefined()
       if (results) {
-        expect(typeof results.total_embeddings).toBe('number')
+        expect(typeof results.total_embeddings).toBe('string')
         expect(typeof results.avg_magnitude).toBe('number')
         expect(typeof results.max_dimensions).toBe('number')
         expect(typeof results.min_dimensions).toBe('number')
         
-        expect(results.total_embeddings).toBeGreaterThan(0)
+        expect(Number(results.total_embeddings)).toBeGreaterThan(0)
         expect(results.avg_magnitude).toBeGreaterThan(0)
         expect(results.max_dimensions).toBe(5) // Our test embeddings are 5D
         expect(results.min_dimensions).toBe(5)
@@ -750,13 +754,13 @@ describe('Vector Database Integration', () => {
     itWithVector('insert and query vector data', async () => {
       const testEmbedding = [0.9, 0.8, 0.7, 0.6, 0.5]
 
-      // Insert test data
+      // Insert test data (using OpenAI-style terminology)
       const insertResult = await db
         .insertInto('document_embeddings')
         .values({
           document_id: null,
           content: 'Test vector document',
-          embedding: testEmbedding,
+          embedding: pg.embedding(testEmbedding),
           metadata: {test: true}
         })
         .returning('id')
@@ -774,7 +778,7 @@ describe('Vector Database Integration', () => {
 
         expect(results.length).toBe(1)
         expect(results[0].content).toBe('Test vector document')
-        expect(results[0].embedding).toEqual(testEmbedding)
+        expect(results[0].embedding).toBe(`[${testEmbedding.join(',')}]`)
 
         // Test similarity search with the inserted vector
         const similarityResults = await db

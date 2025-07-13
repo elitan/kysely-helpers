@@ -52,12 +52,10 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.sql).toContain('$1')
-      expect(compiled.sql).toContain('$2')
-      expect(compiled.sql).toContain('$3')
-      expect(compiled.sql).toContain('< $4')
-      expect(compiled.parameters).toEqual([0.1, 0.2, 0.3, 0.5])
+      expect(compiled.sql).toContain("\"embedding\" <-> $")
+      expect(compiled.sql).toContain('$1::vector')
+      expect(compiled.sql).toContain('< $2')
+      expect(compiled.parameters).toEqual(['[0.1,0.2,0.3]', 0.5])
     })
 
     test('works in ORDER BY clause', () => {
@@ -69,8 +67,8 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('order by "embedding" <-> ARRAY[')
-      expect(compiled.parameters).toEqual([1, 2, 3])
+      expect(compiled.sql).toContain('order by "embedding" <-> $1::vector')
+      expect(compiled.parameters).toEqual(['[1,2,3]'])
     })
 
     test('works in SELECT clause with alias', () => {
@@ -85,9 +83,9 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
+      expect(compiled.sql).toContain("\"embedding\" <-> $")
       expect(compiled.sql).toContain('as "similarity_score"')
-      expect(compiled.parameters).toEqual([0.5, 0.5])
+      expect(compiled.parameters).toEqual(['[0.5,0.5]'])
     })
 
     test('handles empty vectors', () => {
@@ -98,8 +96,8 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[]')
-      expect(compiled.parameters).toEqual([])
+      expect(compiled.sql).toContain("\"embedding\" <-> $1::vector")
+      expect(compiled.parameters).toEqual(['[]'])
     })
 
     test('handles single dimension vectors', () => {
@@ -110,8 +108,8 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.parameters).toEqual([42])
+      expect(compiled.sql).toContain("\"embedding\" <-> $")
+      expect(compiled.parameters).toEqual(['[42]'])
     })
   })
 
@@ -146,8 +144,8 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.parameters).toEqual([-1, -0.5, 0, 0.5, 1])
+      expect(compiled.sql).toContain("\"embedding\" <-> $")
+      expect(compiled.parameters).toEqual(['[-1,-0.5,0,0.5,1]'])
     })
   })
 
@@ -161,9 +159,9 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <#> ARRAY[')
-      expect(compiled.sql).toContain('> $4')
-      expect(compiled.parameters).toEqual([0.7, 0.8, 0.9, 0.8])
+      expect(compiled.sql).toContain("\"embedding\" <#> $")
+      expect(compiled.sql).toContain('> $2')
+      expect(compiled.parameters).toEqual(['[0.7,0.8,0.9]', 0.8])
     })
 
     test('works in ORDER BY descending for similarity ranking', () => {
@@ -175,9 +173,9 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('order by "embedding" <#> ARRAY[')
+      expect(compiled.sql).toContain('order by "embedding" <#> $1::vector')
       expect(compiled.sql).toContain('desc')
-      expect(compiled.parameters).toEqual([1, 0, -1])
+      expect(compiled.parameters).toEqual(['[1,0,-1]'])
     })
 
     test('works in SELECT clause', () => {
@@ -191,9 +189,9 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <#> ARRAY[')
+      expect(compiled.sql).toContain("\"embedding\" <#> $")
       expect(compiled.sql).toContain('as "inner_product_score"')
-      expect(compiled.parameters).toEqual([0.2, 0.4, 0.6])
+      expect(compiled.parameters).toEqual(['[0.2,0.4,0.6]'])
     })
   })
 
@@ -207,9 +205,9 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <=> ARRAY[')
-      expect(compiled.sql).toContain('< $4')
-      expect(compiled.parameters).toEqual([0.3, 0.6, 0.9, 0.2])
+      expect(compiled.sql).toContain("\"embedding\" <=> $")
+      expect(compiled.sql).toContain('< $2')
+      expect(compiled.parameters).toEqual(['[0.3,0.6,0.9]', 0.2])
     })
 
     test('works in ORDER BY for similarity ranking', () => {
@@ -221,8 +219,8 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('order by "embedding" <=> ARRAY[')
-      expect(compiled.parameters).toEqual([1, 1, 1])
+      expect(compiled.sql).toContain('order by "embedding" <=> $1::vector')
+      expect(compiled.parameters).toEqual(['[1,1,1]'])
     })
 
     test('handles normalized vectors', () => {
@@ -237,8 +235,8 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <=> ARRAY[')
-      expect(compiled.parameters).toEqual([0.577, 0.577, 0.577])
+      expect(compiled.sql).toContain("\"embedding\" <=> $")
+      expect(compiled.parameters).toEqual(['[0.577,0.577,0.577]'])
     })
   })
 
@@ -252,9 +250,9 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.sql).toContain('< $4') // l2 distance should be less than threshold
-      expect(compiled.parameters).toEqual([0.1, 0.2, 0.3, 0.5]) // 1 - 0.5 = 0.5 for l2
+      expect(compiled.sql).toContain("\"embedding\" <-> $")
+      expect(compiled.sql).toContain('< $2') // l2 distance should be less than threshold
+      expect(compiled.parameters).toEqual(['[0.1,0.2,0.3]', 0.5]) // 1 - 0.5 = 0.5 for l2
     })
 
     test('generates correct SQL with custom threshold', () => {
@@ -266,9 +264,11 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.sql).toContain('< $4')
-      expect(compiled.parameters).toEqual([0.5, 0.5, 0.5, 0.2]) // 1 - 0.8 = 0.2 for l2
+      expect(compiled.sql).toContain("\"embedding\" <-> $")
+      expect(compiled.sql).toContain('< $2')
+      expect(compiled.parameters).toHaveLength(2)
+      expect(compiled.parameters[0]).toEqual('[0.5,0.5,0.5]')
+      expect(compiled.parameters[1]).toBeCloseTo(0.2, 5) // 1 - 0.8 = 0.2 for l2
     })
 
     test('generates correct SQL with cosine method', () => {
@@ -280,9 +280,11 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <=> ARRAY[')
-      expect(compiled.sql).toContain('< $4')
-      expect(compiled.parameters).toEqual([1, 0, 0, 0.1]) // 1 - 0.9 = 0.1 for cosine
+      expect(compiled.sql).toContain("\"embedding\" <=> $")
+      expect(compiled.sql).toContain('< $2')
+      expect(compiled.parameters).toHaveLength(2)
+      expect(compiled.parameters[0]).toEqual('[1,0,0]')
+      expect(compiled.parameters[1]).toBeCloseTo(0.1, 5) // 1 - 0.9 = 0.1 for cosine
     })
 
     test('generates correct SQL with inner product method', () => {
@@ -294,9 +296,9 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <#> ARRAY[')
-      expect(compiled.sql).toContain('> $4') // inner product should be greater than threshold
-      expect(compiled.parameters).toEqual([0.7, 0.8, 0.9, 0.8]) // threshold used directly for inner product
+      expect(compiled.sql).toContain("\"embedding\" <#> $")
+      expect(compiled.sql).toContain('> $2') // inner product should be greater than threshold
+      expect(compiled.parameters).toEqual(['[0.7,0.8,0.9]', 0.8]) // threshold used directly for inner product
     })
 
     test('handles edge case thresholds', () => {
@@ -309,7 +311,9 @@ describe('Vector SQL Generation', () => {
         .where(pg.vector('embedding').similarTo(searchVector, 0.99))
       
       const highCompiled = highQuery.compile()
-      expect(highCompiled.parameters).toEqual([1, 2, 3, 0.01]) // 1 - 0.99
+      expect(highCompiled.parameters).toHaveLength(2)
+      expect(highCompiled.parameters[0]).toEqual('[1,2,3]')
+      expect(highCompiled.parameters[1]).toBeCloseTo(0.01, 5) // 1 - 0.99
       
       // Very low similarity threshold
       const lowQuery = db
@@ -318,12 +322,12 @@ describe('Vector SQL Generation', () => {
         .where(pg.vector('embedding').similarTo(searchVector, 0.1))
       
       const lowCompiled = lowQuery.compile()
-      expect(lowCompiled.parameters).toEqual([1, 2, 3, 0.9]) // 1 - 0.1
+      expect(lowCompiled.parameters).toEqual(['[1,2,3]', 0.9]) // 1 - 0.1
     })
   })
 
   describe('dimensions() SQL compilation', () => {
-    test('generates correct array_length function call', () => {
+    test('generates correct vector_dims function call', () => {
       const query = db
         .selectFrom('documents')
         .select([
@@ -333,7 +337,7 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('array_length("embedding", 1)')
+      expect(compiled.sql).toContain('vector_dims("embedding")')
       expect(compiled.sql).toContain('as "embedding_dims"')
       expect(compiled.parameters).toEqual([])
     })
@@ -346,7 +350,7 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('array_length("embedding", 1) = $1')
+      expect(compiled.sql).toContain('vector_dims("embedding") = $1')
       expect(compiled.parameters).toEqual([512])
     })
 
@@ -360,7 +364,7 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('array_length("documents"."embedding", 1)')
+      expect(compiled.sql).toContain('vector_dims("documents"."embedding")')
     })
   })
 
@@ -413,7 +417,7 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('array_length("embedding", 1) = array_length("content_embedding", 1)')
+      expect(compiled.sql).toContain('vector_dims("embedding") = vector_dims("content_embedding")')
       expect(compiled.parameters).toEqual([])
     })
 
@@ -425,7 +429,7 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('array_length("documents"."embedding", 1) = array_length("documents"."content_embedding", 1)')
+      expect(compiled.sql).toContain('vector_dims("documents"."embedding") = vector_dims("documents"."content_embedding")')
     })
 
     test('works with aliased tables', () => {
@@ -436,7 +440,7 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('array_length("d"."embedding", 1) = array_length("d"."content_embedding", 1)')
+      expect(compiled.sql).toContain('vector_dims("d"."embedding") = vector_dims("d"."content_embedding")')
     })
   })
 
@@ -461,18 +465,14 @@ describe('Vector SQL Generation', () => {
       const compiled = query.compile()
       
       // Check that all operations are present
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')  // distance
-      expect(compiled.sql).toContain('"embedding" <=> ARRAY[')  // cosineDistance
-      expect(compiled.sql).toContain('"embedding" <#> ARRAY[')  // innerProduct
-      expect(compiled.sql).toContain('array_length("embedding", 1)')  // dimensions
+      expect(compiled.sql).toContain("\"embedding\" <-> $")  // distance
+      expect(compiled.sql).toContain("\"embedding\" <=> $")  // cosineDistance
+      expect(compiled.sql).toContain("\"embedding\" <#> $")  // innerProduct
+      expect(compiled.sql).toContain('vector_dims("embedding")')  // dimensions
       expect(compiled.sql).toContain('limit $')
       
-      // Check parameters include all vector values and other params
-      expect(compiled.parameters).toContain(0.1)
-      expect(compiled.parameters).toContain(0.2)
-      expect(compiled.parameters).toContain(0.3)
-      expect(compiled.parameters).toContain(0.4)
-      expect(compiled.parameters).toContain(0.5)
+      // Check parameters include vector strings and other params
+      expect(compiled.parameters).toContain('[0.1,0.2,0.3,0.4,0.5]')
       expect(compiled.parameters).toContain(5)
       expect(compiled.parameters).toContain(10)
     })
@@ -491,13 +491,12 @@ describe('Vector SQL Generation', () => {
       
       expect(compiled.sql).toContain('"id" > $')
       expect(compiled.sql).toContain('"title" like $')
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.sql).toContain('array_length("embedding", 1) = array_length("content_embedding", 1)')
+      expect(compiled.sql).toContain("\"embedding\" <-> $")
+      expect(compiled.sql).toContain('vector_dims("embedding") = vector_dims("content_embedding")')
       
       expect(compiled.parameters).toContain(100)
       expect(compiled.parameters).toContain('%AI%')
-      expect(compiled.parameters).toContain(1)
-      expect(compiled.parameters).toContain(0)
+      expect(compiled.parameters).toContain('[1,0,1]')
     })
 
     test('subqueries with vector operations', () => {
@@ -516,9 +515,9 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
+      expect(compiled.sql).toContain("\"embedding\" <-> $")
       expect(compiled.sql).toContain('in (')
-      expect(compiled.parameters).toContain(0.5)
+      expect(compiled.parameters).toContain('[0.5,0.5,0.5]')
     })
 
     test('JOIN queries with vector operations', () => {
@@ -538,8 +537,8 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"documents"."embedding" <-> ARRAY[')
-      expect(compiled.sql).toContain('"search_queries"."embedding" <-> ARRAY[')
+      expect(compiled.sql).toContain('"documents"."embedding" <-> $')
+      expect(compiled.sql).toContain('"search_queries"."embedding" <-> $')
       expect(compiled.sql).toContain('inner join')
       expect(compiled.sql).toContain('order by "doc_similarity"')
     })
@@ -594,10 +593,9 @@ describe('Vector SQL Generation', () => {
       expect(compiled.sql).not.toContain('0.123')
       expect(compiled.sql).not.toContain('0.456')
       expect(compiled.sql).not.toContain('0.789')
-      expect(compiled.sql).toContain('$1')
+      expect(compiled.sql).toContain('$1::vector')
       expect(compiled.sql).toContain('$2')
-      expect(compiled.sql).toContain('$3')
-      expect(compiled.parameters).toEqual([0.123, 0.456, 0.789, 0.5])
+      expect(compiled.parameters).toEqual(['[0.123,0.456,0.789]', 0.5])
     })
 
     test('large vectors create appropriate parameters', () => {
@@ -609,14 +607,12 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      // Should have parameter for each vector element
-      expect(compiled.parameters).toHaveLength(100)
-      expect(compiled.parameters).toEqual(largeVector)
+      // Should have single parameter for the vector string
+      expect(compiled.parameters).toHaveLength(1)
+      expect(compiled.parameters[0]).toEqual(`[${largeVector.join(',')}]`)
       
-      // Should contain appropriate number of parameter placeholders
-      largeVector.forEach((_, index) => {
-        expect(compiled.sql).toContain(`$${index + 1}`)
-      })
+      // Should contain single parameter placeholder
+      expect(compiled.sql).toContain('$1::vector')
     })
 
     test('empty vectors create empty ARRAY[]', () => {
@@ -627,8 +623,8 @@ describe('Vector SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('ARRAY[]')
-      expect(compiled.parameters).toEqual([])
+      expect(compiled.sql).toContain('$1::vector')
+      expect(compiled.parameters).toEqual(['[]'])
     })
   })
 })

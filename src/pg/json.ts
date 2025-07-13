@@ -200,7 +200,7 @@ export function json(column: string): JsonOperations {
 
     path: (path: string | string[]) => {
       const pathArray = Array.isArray(path) ? path : [path]
-      const pathString = `{${pathArray.join(',')}}`
+      const pathString = `'{${pathArray.join(',')}}'`
       const pathRef = sql`${columnRef}#>${sql.raw(pathString)}`
       return {
         contains: (value: any) => sql<boolean>`${pathRef} @> ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`,
@@ -211,7 +211,7 @@ export function json(column: string): JsonOperations {
 
     pathText: (path: string | string[]) => {
       const pathArray = Array.isArray(path) ? path : [path]
-      const pathString = `{${pathArray.join(',')}}`
+      const pathString = `'{${pathArray.join(',')}}'`
       return sql<string>`${columnRef}#>>${sql.raw(pathString)}`
     },
 
@@ -228,10 +228,18 @@ export function json(column: string): JsonOperations {
     },
 
     hasAllKeys: (keys: string[]) => {
+      if (keys.length === 0) {
+        // Empty array means "has all of no keys" which is always true
+        return sql<boolean>`true`
+      }
       return sql<boolean>`${columnRef} ?& ARRAY[${sql.join(keys)}]`
     },
 
     hasAnyKey: (keys: string[]) => {
+      if (keys.length === 0) {
+        // Empty array means "has any of no keys" which is always false
+        return sql<boolean>`false`
+      }
       return sql<boolean>`${columnRef} ?| ARRAY[${sql.join(keys)}]`
     }
   }

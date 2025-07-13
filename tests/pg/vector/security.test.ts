@@ -89,10 +89,9 @@ describe('Vector Security Tests', () => {
       expect(compiled.sql).not.toContain('0.1')
       expect(compiled.sql).not.toContain('0.2')
       expect(compiled.sql).not.toContain('0.3')
-      expect(compiled.sql).toContain('$1')
+      expect(compiled.sql).toContain('$1::vector')
       expect(compiled.sql).toContain('$2')
-      expect(compiled.sql).toContain('$3')
-      expect(compiled.parameters).toEqual([0.1, 0.2, 0.3, 0.5])
+      expect(compiled.parameters).toEqual(['[0.1,0.2,0.3]', 0.5])
     })
 
     test('extreme vector values are safely parameterized', () => {
@@ -106,10 +105,10 @@ describe('Vector Security Tests', () => {
       const compiled = query.compile()
       
       // All values should be parameters
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.sql).toContain('$1')
-      expect(compiled.sql).toContain('$6')
-      expect(compiled.parameters).toEqual([...extremeVector, 1.0])
+      expect(compiled.sql).toContain('"embedding" <-> $')
+      expect(compiled.sql).toContain('$1::vector')
+      expect(compiled.sql).toContain('$2')
+      expect(compiled.parameters).toEqual([`[${extremeVector.join(',')}]`, 1.0])
     })
 
     test('malicious numeric strings cannot inject SQL', () => {
@@ -124,11 +123,10 @@ describe('Vector Security Tests', () => {
       const compiled = query.compile()
       
       // Should use proper parameterization
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.sql).toContain('$1')
+      expect(compiled.sql).toContain('"embedding" <-> $')
+      expect(compiled.sql).toContain('$1::vector')
       expect(compiled.sql).toContain('$2')
-      expect(compiled.sql).toContain('$3')
-      expect(compiled.parameters).toEqual([1, 2, 3, 0.5])
+      expect(compiled.parameters).toEqual(['[1,2,3]', 0.5])
     })
 
     test('similarTo thresholds are properly parameterized', () => {
@@ -142,8 +140,10 @@ describe('Vector Security Tests', () => {
       const compiled = query.compile()
       
       // Threshold should be parameterized
-      expect(compiled.sql).toContain('$4') // threshold parameter
-      expect(compiled.parameters).toEqual([0.1, 0.2, 0.3, 0.2]) // 1 - 0.8 = 0.2 for l2
+      expect(compiled.sql).toContain('$2') // threshold parameter
+      expect(compiled.parameters).toHaveLength(2)
+      expect(compiled.parameters[0]).toEqual('[0.1,0.2,0.3]')
+      expect(compiled.parameters[1]).toBeCloseTo(0.2, 5) // 1 - 0.8 = 0.2 for l2 (with floating point tolerance)
     })
 
     test('multiple vector operations are all parameterized', () => {
@@ -163,18 +163,18 @@ describe('Vector Security Tests', () => {
       const compiled = query.compile()
       
       // All vector values should be parameterized (vector appears 5 times)
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.sql).toContain('"embedding" <=> ARRAY[')
-      expect(compiled.sql).toContain('"embedding" <#> ARRAY[')
+      expect(compiled.sql).toContain('"embedding" <-> $')
+      expect(compiled.sql).toContain('"embedding" <=> $')
+      expect(compiled.sql).toContain('"embedding" <#> $')
       
-      // Should have parameters for all vector values plus thresholds
+      // Should have parameters for vector strings (each appears once) plus thresholds
       const expectedParams = [
-        0.5, 0.5, 0.5, // distance in SELECT
-        0.5, 0.5, 0.5, // cosineDistance in SELECT
-        0.5, 0.5, 0.5, // innerProduct in SELECT
-        0.5, 0.5, 0.5, // distance in WHERE
+        '[0.5,0.5,0.5]', // distance in SELECT
+        '[0.5,0.5,0.5]', // cosineDistance in SELECT
+        '[0.5,0.5,0.5]', // innerProduct in SELECT
+        '[0.5,0.5,0.5]', // distance in WHERE
         1.0, // distance threshold
-        0.5, 0.5, 0.5, // cosineDistance in WHERE
+        '[0.5,0.5,0.5]', // cosineDistance in WHERE
         0.5  // cosine threshold
       ]
       expect(compiled.parameters).toEqual(expectedParams)
@@ -190,9 +190,9 @@ describe('Vector Security Tests', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[]')
-      expect(compiled.sql).toContain('< $1')
-      expect(compiled.parameters).toEqual([1.0])
+      expect(compiled.sql).toContain('"embedding" <-> $1::vector')
+      expect(compiled.sql).toContain('< $2')
+      expect(compiled.parameters).toEqual(['[]', 1.0])
     })
 
     test('single element vectors are handled safely', () => {
@@ -203,9 +203,9 @@ describe('Vector Security Tests', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.sql).toContain('$1')
-      expect(compiled.parameters).toEqual([42, 1.0])
+      expect(compiled.sql).toContain('"embedding" <-> $')
+      expect(compiled.sql).toContain('$1::vector')
+      expect(compiled.parameters).toEqual(['[42]', 1.0])
     })
 
     test('very large vectors are handled safely', () => {
@@ -218,10 +218,10 @@ describe('Vector Security Tests', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.parameters).toHaveLength(1001) // 1000 vector elements + 1 threshold
-      expect(compiled.parameters.slice(0, -1)).toEqual(largeVector)
-      expect(compiled.parameters[1000]).toBe(1.0)
+      expect(compiled.sql).toContain('"embedding" <-> $')
+      expect(compiled.parameters).toHaveLength(2) // 1 vector string + 1 threshold
+      expect(compiled.parameters[0]).toEqual(`[${largeVector.join(',')}]`)
+      expect(compiled.parameters[1]).toBe(1.0)
     })
 
     test('vectors with special float values are handled', () => {
@@ -243,8 +243,8 @@ describe('Vector Security Tests', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"embedding" <-> ARRAY[')
-      expect(compiled.parameters).toEqual([...specialVector, 1.0])
+      expect(compiled.sql).toContain('"embedding" <-> $')
+      expect(compiled.parameters).toEqual([`[${specialVector.join(',')}]`, 1.0])
     })
   })
 
@@ -283,10 +283,10 @@ describe('Vector Security Tests', () => {
       const compiled = query.compile()
       
       // The malicious column name would be quoted as a single identifier
-      expect(compiled.sql).toContain('"embedding\"; DROP TABLE users; --" <-> ARRAY[')
+      expect(compiled.sql).toContain("\"embedding\"\"; DROP TABLE users; --\" <-> $1::vector")
       
       // The values should still be properly parameterized
-      expect(compiled.parameters).toEqual([1, 2, 3, 0.5])
+      expect(compiled.parameters).toEqual(['[1,2,3]', 0.5])
       
       // SQL should still be valid
       expect(compiled.sql).toContain('select * from "document_embeddings"')
@@ -302,8 +302,8 @@ describe('Vector Security Tests', () => {
       
       // Both column references should be quoted
       expect(compiled.sql).toContain('"embedding"')
-      expect(compiled.sql).toContain('"malicious\"; DROP TABLE test; --"')
-      expect(compiled.sql).toContain('array_length')
+      expect(compiled.sql).toContain('\"malicious\"\"; DROP TABLE test; --\"')
+      expect(compiled.sql).toContain('vector_dims')
     })
   })
 
@@ -365,13 +365,13 @@ describe('Vector Security Tests', () => {
       const innerCompiled = innerQuery.compile()
       
       // Should use correct operators and comparison directions
-      expect(l2Compiled.sql).toContain('<-> ARRAY[')
+      expect(l2Compiled.sql).toContain('<-> $')
       expect(l2Compiled.sql).toContain('< $') // l2 uses less than
       
-      expect(cosineCompiled.sql).toContain('<=> ARRAY[')
+      expect(cosineCompiled.sql).toContain('<=> $')
       expect(cosineCompiled.sql).toContain('< $') // cosine uses less than
       
-      expect(innerCompiled.sql).toContain('<#> ARRAY[')
+      expect(innerCompiled.sql).toContain('<#> $')
       expect(innerCompiled.sql).toContain('> $') // inner product uses greater than
     })
   })
@@ -385,9 +385,9 @@ describe('Vector Security Tests', () => {
 
       // These vectors should be treated as data, not executable code
       const maliciousVectors = [
-        [1, 2, 3], // Normal vector
-        [1e10, -1e10, 0], // Extreme values
-        [0.1, 0.2, 0.3, 0.4, 0.5], // Different dimension
+        [1, 2, 3, 4, 5], // Normal vector (5D to match database)
+        [1e10, -1e10, 0, 1, 2], // Extreme values (5D)
+        [0.1, 0.2, 0.3, 0.4, 0.5], // Regular vector (5D)
       ]
 
       // These should all execute without error
@@ -505,7 +505,7 @@ describe('Vector Security Tests', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('array_length("embedding", 1) = array_length("other_embedding", 1)')
+      expect(compiled.sql).toContain('vector_dims("embedding") = vector_dims("other_embedding")')
     })
 
     test('vector operations generate type-safe SQL', () => {
@@ -523,8 +523,8 @@ describe('Vector Security Tests', () => {
       const compiled = query.compile()
       
       // All operations should generate proper SQL
-      expect(compiled.sql).toContain('<-> ARRAY[')
-      expect(compiled.sql).toContain('array_length(')
+      expect(compiled.sql).toContain('<-> $')
+      expect(compiled.sql).toContain('vector_dims(')
       expect(compiled.sql).toContain('vector_norm(')
       expect(compiled.sql).toContain('as "distance"')
       expect(compiled.sql).toContain('as "dims"')
@@ -545,9 +545,9 @@ describe('Vector Security Tests', () => {
       
       // All should generate valid SQL
       for (const comp of compiled) {
-        expect(comp.sql).toContain('<-> ARRAY[')
+        expect(comp.sql).toContain('<-> $')
         expect(comp.sql).toContain('< $')
-        expect(comp.parameters).toEqual([0.1, 0.2, 0.3, expect.any(Number)])
+        expect(comp.parameters).toEqual(['[0.1,0.2,0.3]', expect.any(Number)])
       }
     })
 
@@ -563,7 +563,7 @@ describe('Vector Security Tests', () => {
       const compiled = query.compile()
       
       // Function calls should be properly formatted
-      expect(compiled.sql).toContain('array_length("embedding", 1)')
+      expect(compiled.sql).toContain('vector_dims("embedding")')
       expect(compiled.sql).toContain('vector_norm("embedding")')
       expect(compiled.sql).not.toContain('array_length(embedding') // Should be quoted
       expect(compiled.sql).not.toContain('vector_norm(embedding') // Should be quoted

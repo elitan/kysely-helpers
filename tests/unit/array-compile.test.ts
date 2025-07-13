@@ -143,7 +143,7 @@ describe('Array Operations - SQL Compilation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('array_length("tags", 1) > $1')
+      expect(compiled.sql).toContain('coalesce(array_length("tags", 1), 0) > $1')
       expect(compiled.parameters).toEqual([3])
     })
 
@@ -158,7 +158,7 @@ describe('Array Operations - SQL Compilation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('array_length("tags", 1) as "tag_count"')
+      expect(compiled.sql).toContain('coalesce(array_length("tags", 1), 0) as "tag_count"')
     })
   })
 
@@ -195,7 +195,7 @@ describe('Array Operations - SQL Compilation', () => {
       // Check that all operations are present
       expect(compiled.sql).toContain('"tags" @> ARRAY[')  // includes
       expect(compiled.sql).toContain('"categories" && ARRAY[')  // overlaps
-      expect(compiled.sql).toContain('array_length("tags", 1) > $')  // length
+      expect(compiled.sql).toContain('coalesce(array_length("tags", 1), 0) > $')  // length
       expect(compiled.sql).toContain('order by "name"')
       expect(compiled.sql).toContain('limit $')
       
