@@ -1,8 +1,8 @@
 # Kysely Helpers
 
-**Database helpers and utilities for Kysely query builder**
+**Database helpers and utilities for Kysely**
 
-Type-safe database operations for Kysely. Currently focused on PostgreSQL with comprehensive support for arrays, JSONB, vectors (pgvector), and full-text search. More database-specific helpers coming soon.
+Currently focused on PostgreSQL with comprehensive support for arrays, JSONB, vectors (pgvector), and full-text search.
 
 ## Features
 
@@ -111,54 +111,52 @@ import { pg } from 'kysely-helpers'
 Power AI applications with semantic search and similarity matching directly in your database.
 
 ```typescript
-import { pg } from 'kysely-helpers'
+import { pg } from "kysely-helpers";
 
 // Insert embeddings from OpenAI, Anthropic, etc.
 const embedding = await openai.embeddings.create({
   model: "text-embedding-3-small",
-  input: "Hello world"
-})
+  input: "Hello world",
+});
 
-await db.insertInto('documents')
+await db
+  .insertInto("documents")
   .values({
-    title: 'Machine Learning Guide',
-    content: 'A comprehensive guide...',
-    embedding: pg.embedding(embedding.data[0].embedding)  // Proper vector format
+    title: "Machine Learning Guide",
+    content: "A comprehensive guide...",
+    embedding: pg.embedding(embedding.data[0].embedding), // Proper vector format
   })
   .execute()
 
-// Convert vectors back to JavaScript arrays → string_to_array(...)
-.select([
-  'id',
-  'title', 
-  pg.vector('embedding').toArray().as('embedding')
-])
+  // Convert vectors back to JavaScript arrays → string_to_array(...)
+  .select(["id", "title", pg.vector("embedding").toArray().as("embedding")])
 
-// Find vectors with 80%+ similarity → embedding <-> $1 < 0.2
-.where(pg.vector('embedding').similarTo(searchVector, 0.8))
+  // Find vectors with 80%+ similarity → embedding <-> $1 < 0.2
+  .where(pg.vector("embedding").similarTo(searchVector, 0.8))
 
-// Order by most similar first → ORDER BY embedding <-> $1
-.orderBy(pg.vector('embedding').distance(searchVector))
+  // Order by most similar first → ORDER BY embedding <-> $1
+  .orderBy(pg.vector("embedding").distance(searchVector))
 
-// Euclidean distance → embedding <-> $1 < 0.5
-.where(pg.vector('embedding').l2Distance(searchVector), '<', 0.5)
+  // Euclidean distance → embedding <-> $1 < 0.5
+  .where(pg.vector("embedding").l2Distance(searchVector), "<", 0.5)
 
-// Cosine similarity → embedding <=> $1 < 0.3
-.where(pg.vector('embedding').cosineDistance(searchVector), '<', 0.3)
+  // Cosine similarity → embedding <=> $1 < 0.3
+  .where(pg.vector("embedding").cosineDistance(searchVector), "<", 0.3)
 
-// Dot product → embedding <#> $1 > 0.7
-.where(pg.vector('embedding').innerProduct(searchVector), '>', 0.7)
+  // Dot product → embedding <#> $1 > 0.7
+  .where(pg.vector("embedding").innerProduct(searchVector), ">", 0.7)
 
-// Get vector dimensions → vector_dims(embedding)
-.select([pg.vector('embedding').dimensions().as('dims')])
+  // Get vector dimensions → vector_dims(embedding)
+  .select([pg.vector("embedding").dimensions().as("dims")])
 
-// Get vector magnitude → vector_norm(embedding)
-.select([pg.vector('embedding').norm().as('magnitude')])
+  // Get vector magnitude → vector_norm(embedding)
+  .select([pg.vector("embedding").norm().as("magnitude")]);
 ```
 
 **Use cases:** Semantic search, recommendation engines, document similarity, image recognition, chatbot context matching.
 
 **Key features:**
+
 - `pg.embedding()` - Convert arrays to proper PostgreSQL vector format for insertion
 - `pg.vector().toArray()` - Convert PostgreSQL vectors back to JavaScript arrays
 - Full compatibility with OpenAI, Anthropic, and other embedding providers
@@ -191,7 +189,7 @@ const products = await db
 ```typescript
 const searchEmbedding = await openai.embeddings.create({
   model: "text-embedding-3-small",
-  input: "machine learning tutorials"
+  input: "machine learning tutorials",
 });
 
 const results = await db
@@ -201,12 +199,17 @@ const results = await db
     "title",
     "content",
     pg.json("metadata").getText("author").as("author"),
-    pg.vector("embedding").distance(searchEmbedding.data[0].embedding).as("similarity"),
+    pg
+      .vector("embedding")
+      .distance(searchEmbedding.data[0].embedding)
+      .as("similarity"),
     pg.array("tags").length().as("tag_count"),
   ])
   .where(pg.array("tags").overlaps(["ai", "machine-learning"]))
   .where(pg.json("metadata").get("published").equals(true))
-  .where(pg.vector("embedding").similarTo(searchEmbedding.data[0].embedding, 0.8))
+  .where(
+    pg.vector("embedding").similarTo(searchEmbedding.data[0].embedding, 0.8)
+  )
   .orderBy("similarity")
   .limit(20)
   .execute();
@@ -221,7 +224,8 @@ const userData = await db
     "id",
     "email",
     pg.json("preferences").getText("theme").as("theme"),
-    pg.json("preferences")
+    pg
+      .json("preferences")
       .path(["notifications", "email"])
       .as("email_notifications"),
   ])
@@ -275,6 +279,7 @@ bun run db:down
 Contributions welcome! This package aims to provide the best database utilities for Kysely across different database systems.
 
 **Roadmap:**
+
 - Generic Kysely helpers (pagination, transactions, migrations)
 - MySQL-specific helpers
 - SQLite-specific helpers
