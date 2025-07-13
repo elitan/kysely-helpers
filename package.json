@@ -1,0 +1,66 @@
+{
+  "name": "kysely-helpers",
+  "version": "0.0.1",
+  "description": "Database helpers and utilities for Kysely query builder",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun run build:clean && bun run build:cjs && bun run build:esm && bun run build:types",
+    "build:clean": "rm -rf dist",
+    "build:cjs": "bun build src/index.ts --outdir dist --format cjs --outfile index.js",
+    "build:esm": "bun build src/index.ts --format esm --outfile dist/index.mjs",
+    "build:types": "tsc --declaration --emitDeclarationOnly --outDir dist",
+    "dev": "bun --watch src/index.ts",
+    "test": "bun test tests/unit/",
+    "test:watch": "bun test tests/unit/ --watch",
+    "test:integration": "bun test tests/integration/",
+    "test:all": "bun test",
+    "db:up": "docker-compose up -d postgres",
+    "db:down": "docker-compose down",
+    "db:logs": "docker-compose logs -f postgres",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "kysely",
+    "database",
+    "postgresql",
+    "postgres",
+    "sql",
+    "query-builder",
+    "helpers",
+    "utilities",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/elitan/kysely-helpers.git"
+  },
+  "peerDependencies": {
+    "kysely": "^0.27.0 || ^0.28.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "kysely": "^0.28.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@types/pg": "^8.15.4",
+    "pg": "^8.16.3"
+  }
+}
