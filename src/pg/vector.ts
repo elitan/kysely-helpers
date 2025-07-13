@@ -1,4 +1,4 @@
-import { sql, type Expression } from 'kysely'
+import { sql, type Expression, type RawBuilder } from 'kysely'
 
 /**
  * PostgreSQL vector helper functions (pgvector extension)
@@ -15,6 +15,23 @@ import { sql, type Expression } from 'kysely'
  */
 export interface VectorOperations {
   /**
+   * Convert PostgreSQL vector string to JavaScript array
+   * Converts "[0.1,0.2,0.3]" to [0.1, 0.2, 0.3]
+   * 
+   * @example
+   * ```ts
+   * .select([
+   *   'id',
+   *   pg.vector('embedding').toArray().as('embedding')
+   * ])
+   * // Result: { id: 1, embedding: [0.1, 0.2, 0.3] }
+   * ```
+   * 
+   * Generates: `string_to_array(trim(embedding::text, '[]'), ',')::float[]`
+   */
+  toArray(): RawBuilder<number[]>
+
+  /**
    * L2 distance operator (<->)
    * Euclidean distance between vectors
    * 
@@ -26,7 +43,7 @@ export interface VectorOperations {
    * 
    * Generates: `embedding <-> $1`
    */
-  distance(otherVector: number[]): Expression<number>
+  distance(otherVector: number[]): RawBuilder<number>
 
   /**
    * L2 distance operator (<->) - alias for distance()
@@ -36,7 +53,7 @@ export interface VectorOperations {
    * .where(vector('embedding').l2Distance(searchVector), '<', 0.3)
    * ```
    */
-  l2Distance(otherVector: number[]): Expression<number>
+  l2Distance(otherVector: number[]): RawBuilder<number>
 
   /**
    * Inner product operator (<#>)
@@ -50,7 +67,7 @@ export interface VectorOperations {
    * 
    * Generates: `embedding <#> $1`
    */
-  innerProduct(otherVector: number[]): Expression<number>
+  innerProduct(otherVector: number[]): RawBuilder<number>
 
   /**
    * Cosine distance operator (<=>)
@@ -63,7 +80,7 @@ export interface VectorOperations {
    * 
    * Generates: `embedding <=> $1`
    */
-  cosineDistance(otherVector: number[]): Expression<number>
+  cosineDistance(otherVector: number[]): RawBuilder<number>
 
   /**
    * Vector similarity with threshold
@@ -95,7 +112,7 @@ export interface VectorOperations {
    * 
    * Generates: `array_length(embedding, 1)`
    */
-  dimensions(): Expression<number>
+  dimensions(): RawBuilder<number>
 
   /**
    * Vector norm/magnitude
@@ -107,7 +124,7 @@ export interface VectorOperations {
    * 
    * Generates: `vector_norm(embedding)`
    */
-  norm(): Expression<number>
+  norm(): RawBuilder<number>
 
   /**
    * Check if vectors have same dimensions
@@ -118,6 +135,35 @@ export interface VectorOperations {
    * ```
    */
   sameDimensions(otherVector: Expression<any> | string): Expression<boolean>
+}
+
+/**
+ * Create a vector value for inserting embeddings into PostgreSQL
+ * 
+ * @param embedding Array of numbers representing the embedding from OpenAI, Anthropic, etc.
+ * @returns SQL expression for inserting vector data
+ * 
+ * @example
+ * ```ts
+ * import { pg } from 'kysely-helpers'
+ * 
+ * const embedding = await openai.embeddings.create({
+ *   model: "text-embedding-3-small",
+ *   input: "Hello world"
+ * })
+ * 
+ * await db
+ *   .insertInto('documents')
+ *   .values({
+ *     title: 'My Document',
+ *     content: text,
+ *     embedding: pg.embedding(embedding.data[0].embedding)
+ *   })
+ *   .execute()
+ * ```
+ */
+export function embedding(embedding: number[]): RawBuilder<any> {
+  return sql.raw(`'[${embedding.join(',')}]'::vector`)
 }
 
 /**
@@ -151,20 +197,28 @@ export function vector(column: string): VectorOperations {
   const columnRef = sql.ref(column)
 
   return {
+    toArray: () => {
+      return sql<number[]>`string_to_array(trim(${columnRef}::text, '[]'), ',')::float[]`
+    },
+
     distance: (otherVector: number[]) => {
-      return sql<number>`${columnRef} <-> ARRAY[${sql.join(otherVector)}]`
+      const vectorStr = `[${otherVector.join(',')}]`
+      return sql<number>`${columnRef} <-> ${vectorStr}::vector`
     },
 
     l2Distance: (otherVector: number[]) => {
-      return sql<number>`${columnRef} <-> ARRAY[${sql.join(otherVector)}]`
+      const vectorStr = `[${otherVector.join(',')}]`
+      return sql<number>`${columnRef} <-> ${vectorStr}::vector`
     },
 
     innerProduct: (otherVector: number[]) => {
-      return sql<number>`${columnRef} <#> ARRAY[${sql.join(otherVector)}]`
+      const vectorStr = `[${otherVector.join(',')}]`
+      return sql<number>`${columnRef} <#> ${vectorStr}::vector`
     },
 
     cosineDistance: (otherVector: number[]) => {
-      return sql<number>`${columnRef} <=> ARRAY[${sql.join(otherVector)}]`
+      const vectorStr = `[${otherVector.join(',')}]`
+      return sql<number>`${columnRef} <=> ${vectorStr}::vector`
     },
 
     similarTo: (
@@ -182,11 +236,12 @@ export function vector(column: string): VectorOperations {
       const compareOp = method === 'inner' ? '>' : '<'
       const thresholdValue = method === 'inner' ? threshold : (1 - threshold)
       
-      return sql<boolean>`${columnRef} ${sql.raw(operator)} ARRAY[${sql.join(otherVector)}] ${sql.raw(compareOp)} ${thresholdValue}`
+      const vectorStr = `[${otherVector.join(',')}]`
+      return sql<boolean>`${columnRef} ${sql.raw(operator)} ${vectorStr}::vector ${sql.raw(compareOp)} ${thresholdValue}`
     },
 
     dimensions: () => {
-      return sql<number>`array_length(${columnRef}, 1)`
+      return sql<number>`vector_dims(${columnRef})`
     },
 
     norm: () => {
@@ -195,7 +250,7 @@ export function vector(column: string): VectorOperations {
 
     sameDimensions: (otherVector: Expression<any> | string) => {
       const otherRef = typeof otherVector === 'string' ? sql.ref(otherVector) : otherVector
-      return sql<boolean>`array_length(${columnRef}, 1) = array_length(${otherRef}, 1)`
+      return sql<boolean>`vector_dims(${columnRef}) = vector_dims(${otherRef})`
     }
   }
 }
