@@ -1,4 +1,4 @@
-import { sql, type Expression } from 'kysely'
+import { sql, type Expression, type RawBuilder } from 'kysely'
 
 /**
  * PostgreSQL array helper functions
@@ -76,7 +76,7 @@ export interface ArrayOperations<T> {
    * 
    * Generates: `array_length(tags, 1) > 3`
    */
-  length(): Expression<number>
+  length(): RawBuilder<number>
 
   /**
    * Array element equals any (= ANY)
@@ -88,7 +88,7 @@ export interface ArrayOperations<T> {
    * 
    * Generates: `status = ANY(allowed_statuses)`
    */
-  any(): Expression<T>
+  any(): RawBuilder<T>
 }
 
 /**
@@ -112,30 +112,50 @@ export interface ArrayOperations<T> {
 export function array<T = string>(column: string): ArrayOperations<T> {
   const columnRef = sql.ref(column)
 
+  // Helper function to determine PostgreSQL array type for casting
+  const getArrayType = (values: T[]): string => {
+    if (values.length === 0) return 'text[]'
+    
+    const firstValue = values[0]
+    if (typeof firstValue === 'number') return 'integer[]'
+    if (typeof firstValue === 'boolean') return 'boolean[]'
+    return 'text[]'
+  }
+
   return {
     contains: (value: T | T[]) => {
       const arrayValue = Array.isArray(value) ? value : [value]
       if (arrayValue.length === 0) {
-        // Empty array - use typed array literal
+        // Empty array - use text[] as default
         return sql<boolean>`${columnRef} @> ARRAY[]::text[]`
       }
-      return sql<boolean>`${columnRef} @> ARRAY[${sql.join(arrayValue)}]`
+      const arrayType = getArrayType(arrayValue)
+      return sql<boolean>`${columnRef} @> ARRAY[${sql.join(arrayValue)}]::${sql.raw(arrayType)}`
     },
 
     includes: (value: T) => {
-      return sql<boolean>`${columnRef} @> ARRAY[${value}]`
+      const arrayType = getArrayType([value])
+      return sql<boolean>`${columnRef} @> ARRAY[${value}]::${sql.raw(arrayType)}`
     },
 
     overlaps: (values: T[]) => {
-      return sql<boolean>`${columnRef} && ARRAY[${sql.join(values)}]`
+      if (values.length === 0) {
+        return sql<boolean>`${columnRef} && ARRAY[]::text[]`
+      }
+      const arrayType = getArrayType(values)
+      return sql<boolean>`${columnRef} && ARRAY[${sql.join(values)}]::${sql.raw(arrayType)}`
     },
 
     containedBy: (values: T[]) => {
-      return sql<boolean>`${columnRef} <@ ARRAY[${sql.join(values)}]`
+      if (values.length === 0) {
+        return sql<boolean>`${columnRef} <@ ARRAY[]::text[]`
+      }
+      const arrayType = getArrayType(values)
+      return sql<boolean>`${columnRef} <@ ARRAY[${sql.join(values)}]::${sql.raw(arrayType)}`
     },
 
     length: () => {
-      return sql<number>`array_length(${columnRef}, 1)`
+      return sql<number>`coalesce(array_length(${columnRef}, 1), 0)`
     },
 
     any: () => {

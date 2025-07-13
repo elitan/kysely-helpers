@@ -1,4 +1,4 @@
-import { sql, type Expression } from 'kysely'
+import { sql, type Expression, type RawBuilder } from 'kysely'
 
 /**
  * PostgreSQL full-text search helper functions
@@ -79,7 +79,7 @@ export interface TextOperations {
    * 
    * Generates: `ts_rank(content, to_tsquery('machine learning'))`
    */
-  rank(query: string, config?: string): Expression<number>
+  rank(query: string, config?: string): RawBuilder<number>
 
   /**
    * Cover density ranking with ts_rank_cd
@@ -92,7 +92,7 @@ export interface TextOperations {
    * 
    * Generates: `ts_rank_cd(content, to_tsquery('tutorial'))`
    */
-  rankCd(query: string, config?: string): Expression<number>
+  rankCd(query: string, config?: string): RawBuilder<number>
 
   /**
    * Generate highlighted snippets with ts_headline
@@ -111,7 +111,7 @@ export interface TextOperations {
    * 
    * Generates: `ts_headline(content, to_tsquery('machine learning'), 'MaxWords=50,...')`
    */
-  headline(query: string, options?: HeadlineOptions, config?: string): Expression<string>
+  headline(query: string, options?: HeadlineOptions, config?: string): RawBuilder<string>
 
   /**
    * Convert text to tsvector for indexing
@@ -123,7 +123,7 @@ export interface TextOperations {
    * 
    * Generates: `to_tsvector(content)`
    */
-  toVector(config?: string): Expression<any>
+  toVector(config?: string): RawBuilder<any>
 }
 
 /**

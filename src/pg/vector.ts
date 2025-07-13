@@ -1,4 +1,4 @@
-import { sql, type Expression } from 'kysely'
+import { sql, type Expression, type RawBuilder } from 'kysely'
 
 /**
  * PostgreSQL vector helper functions (pgvector extension)
@@ -26,7 +26,7 @@ export interface VectorOperations {
    * 
    * Generates: `embedding <-> $1`
    */
-  distance(otherVector: number[]): Expression<number>
+  distance(otherVector: number[]): RawBuilder<number>
 
   /**
    * L2 distance operator (<->) - alias for distance()
@@ -36,7 +36,7 @@ export interface VectorOperations {
    * .where(vector('embedding').l2Distance(searchVector), '<', 0.3)
    * ```
    */
-  l2Distance(otherVector: number[]): Expression<number>
+  l2Distance(otherVector: number[]): RawBuilder<number>
 
   /**
    * Inner product operator (<#>)
@@ -50,7 +50,7 @@ export interface VectorOperations {
    * 
    * Generates: `embedding <#> $1`
    */
-  innerProduct(otherVector: number[]): Expression<number>
+  innerProduct(otherVector: number[]): RawBuilder<number>
 
   /**
    * Cosine distance operator (<=>)
@@ -63,7 +63,7 @@ export interface VectorOperations {
    * 
    * Generates: `embedding <=> $1`
    */
-  cosineDistance(otherVector: number[]): Expression<number>
+  cosineDistance(otherVector: number[]): RawBuilder<number>
 
   /**
    * Vector similarity with threshold
@@ -95,7 +95,7 @@ export interface VectorOperations {
    * 
    * Generates: `array_length(embedding, 1)`
    */
-  dimensions(): Expression<number>
+  dimensions(): RawBuilder<number>
 
   /**
    * Vector norm/magnitude
@@ -107,7 +107,7 @@ export interface VectorOperations {
    * 
    * Generates: `vector_norm(embedding)`
    */
-  norm(): Expression<number>
+  norm(): RawBuilder<number>
 
   /**
    * Check if vectors have same dimensions

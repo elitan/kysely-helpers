@@ -1,4 +1,4 @@
-import { sql, type Expression } from 'kysely'
+import { sql, type Expression, type RawBuilder } from 'kysely'
 
 /**
  * PostgreSQL JSONB helper functions
@@ -47,7 +47,7 @@ export interface JsonPathOperations {
    * .select([json('metadata').path('$.theme').asText().as('theme')])
    * ```
    */
-  asText(): Expression<string>
+  asText(): RawBuilder<string>
 }
 
 /**
@@ -76,7 +76,7 @@ export interface JsonOperations {
    * 
    * Generates: `metadata->>'theme' = 'dark'`
    */
-  getText(key: string): Expression<string>
+  getText(key: string): RawBuilder<string>
 
   /**
    * Get JSON object at path (#>)
@@ -100,7 +100,7 @@ export interface JsonOperations {
    * 
    * Generates: `metadata#>>'{user,theme}' = 'dark'`
    */
-  pathText(path: string | string[]): Expression<string>
+  pathText(path: string | string[]): RawBuilder<string>
 
   /**
    * JSON contains operation (@>)
@@ -184,41 +184,43 @@ export function json(column: string): JsonOperations {
 
   return {
     get: (key: string) => {
-      const pathRef = sql`${columnRef}->${key}`
+      const quotedKey = sql.raw(`'${key.replace(/'/g, "''")}'`)
+      const pathRef = sql`${columnRef}->${quotedKey}`
       return {
-        contains: (value: any) => sql<boolean>`${pathRef} @> ${JSON.stringify(value)}`,
-        equals: (value: any) => sql<boolean>`${pathRef} = ${JSON.stringify(value)}`,
-        asText: () => sql<string>`${columnRef}->>${key}`
+        contains: (value: any) => sql<boolean>`${pathRef} @> ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`,
+        equals: (value: any) => sql<boolean>`${pathRef} = ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`,
+        asText: () => sql<string>`${columnRef}->>${quotedKey}`
       }
     },
 
     getText: (key: string) => {
-      return sql<string>`${columnRef}->>${key}`
+      const quotedKey = sql.raw(`'${key.replace(/'/g, "''")}'`)
+      return sql<string>`${columnRef}->>${quotedKey}`
     },
 
     path: (path: string | string[]) => {
       const pathArray = Array.isArray(path) ? path : [path]
       const pathString = `{${pathArray.join(',')}}`
-      const pathRef = sql`${columnRef}#>${pathString}`
+      const pathRef = sql`${columnRef}#>${sql.raw(pathString)}`
       return {
-        contains: (value: any) => sql<boolean>`${pathRef} @> ${JSON.stringify(value)}`,
-        equals: (value: any) => sql<boolean>`${pathRef} = ${JSON.stringify(value)}`,
-        asText: () => sql<string>`${columnRef}#>>${pathString}`
+        contains: (value: any) => sql<boolean>`${pathRef} @> ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`,
+        equals: (value: any) => sql<boolean>`${pathRef} = ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`,
+        asText: () => sql<string>`${columnRef}#>>${sql.raw(pathString)}`
       }
     },
 
     pathText: (path: string | string[]) => {
       const pathArray = Array.isArray(path) ? path : [path]
       const pathString = `{${pathArray.join(',')}}`
-      return sql<string>`${columnRef}#>>${pathString}`
+      return sql<string>`${columnRef}#>>${sql.raw(pathString)}`
     },
 
     contains: (value: any) => {
-      return sql<boolean>`${columnRef} @> ${JSON.stringify(value)}`
+      return sql<boolean>`${columnRef} @> ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`
     },
 
     containedBy: (value: any) => {
-      return sql<boolean>`${columnRef} <@ ${JSON.stringify(value)}`
+      return sql<boolean>`${columnRef} <@ ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`
     },
 
     hasKey: (key: string) => {
