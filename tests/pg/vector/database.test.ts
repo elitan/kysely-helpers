@@ -778,7 +778,7 @@ describe('Vector Database Integration', () => {
 
         expect(results.length).toBe(1)
         expect(results[0].content).toBe('Test vector document')
-        expect(results[0].embedding).toEqual(testEmbedding)
+        expect(results[0].embedding).toBe(`[${testEmbedding.join(',')}]`)
 
         // Test similarity search with the inserted vector
         const similarityResults = await db
