@@ -30,6 +30,14 @@ class TestDialect {
   createQueryCompiler() {
     return new PostgresQueryCompiler()
   }
+  
+  createIntrospector() {
+    return {
+      getSchemas: () => Promise.resolve([]),
+      getTables: () => Promise.resolve([]),
+      getMetadata: () => Promise.resolve({ tables: [] })
+    } as any
+  }
 }
 
 describe('Array Operations - SQL Compilation', () => {

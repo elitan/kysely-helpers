@@ -24,6 +24,7 @@ class TestDialect {
   createAdapter() { return new PostgresAdapter() }
   createDriver() { return new DummyDriver() }
   createQueryCompiler() { return new PostgresQueryCompiler() }
+  createIntrospector() { return { getSchemas: () => Promise.resolve([]), getTables: () => Promise.resolve([]), getMetadata: () => Promise.resolve({ tables: [] }) } as any }
 }
 
 // Database config for integration security tests

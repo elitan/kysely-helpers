@@ -386,12 +386,14 @@ describe('Array Database Integration', () => {
         .values({
           name: 'Empty Tags Product',
           description: 'Product with no tags',
-          tags: [],
+          tags: [] as string[],
           categories: ['test'],
-          scores: [],
-          prices: [],
+          scores: [] as number[],
+          prices: [] as number[],
           metadata: {},
-          settings: {}
+          settings: {},
+          created_at: new Date(),
+          updated_at: new Date()
         })
         .returning('id')
         .executeTakeFirst()
@@ -403,7 +405,7 @@ describe('Array Database Integration', () => {
         const results = await db
           .selectFrom('products')
           .select(['id', 'name', 'tags'])
-          .where(sql`coalesce(array_length(tags, 1), 0) = 0`)
+          .where(sql<boolean>`coalesce(array_length(tags, 1), 0) = 0`)
           .execute()
 
         // Should find at least our inserted product
@@ -573,10 +575,12 @@ describe('Array Database Integration', () => {
           description: 'Test product',
           tags: ["tag's with apostrophe", 'tag"with"quotes', 'tag\\with\\backslash', 'tag with spaces'],
           categories: ['test'],
-          scores: [],
-          prices: [],
+          scores: [] as number[],
+          prices: [] as number[],
           metadata: {},
-          settings: {}
+          settings: {},
+          created_at: new Date(),
+          updated_at: new Date()
         })
         .returning('id')
         .executeTakeFirst()

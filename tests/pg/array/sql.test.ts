@@ -11,6 +11,8 @@ interface TestDB {
   products: {
     id: number
     name: string
+    status: string
+    created_by: number
     tags: string[]
     categories: string[]
     scores: number[]
@@ -18,6 +20,7 @@ interface TestDB {
   }
   users: {
     id: number
+    admin: string
     roles: string[]
     permissions: string[]
   }
@@ -35,6 +38,14 @@ class TestDialect {
   
   createQueryCompiler() {
     return new PostgresQueryCompiler()
+  }
+  
+  createIntrospector() {
+    return {
+      getSchemas: () => Promise.resolve([]),
+      getTables: () => Promise.resolve([]),
+      getMetadata: () => Promise.resolve({ tables: [] })
+    } as any
   }
 }
 

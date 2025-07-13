@@ -239,7 +239,7 @@ describe('Array API', () => {
       expect(() => {
         pg.array('products.tags').includes('featured')
         pg.array('user.preferences').contains(['dark_mode'])
-        pg.array('order.items').overlaps([1, 2, 3])
+        pg.array('order.items').overlaps(['item1', 'item2', 'item3'])
       }).not.toThrow()
     })
 
