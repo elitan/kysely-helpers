@@ -480,6 +480,178 @@ describe('Array SQL Generation', () => {
     })
   })
 
+  describe('Array update operations SQL compilation', () => {
+    test('append() single value generates array_append', () => {
+      const query = db
+        .updateTable('products')
+        .set({ tags: pg.array('tags').append('new-tag') })
+        .where('id', '=', 1)
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('array_append("tags", $1::text)')
+      expect(compiled.parameters).toContain('new-tag')
+    })
+
+    test('append() multiple values generates array concatenation', () => {
+      const query = db
+        .updateTable('products')
+        .set({ tags: pg.array('tags').append(['tag1', 'tag2']) })
+        .where('id', '=', 1)
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"tags" || ARRAY[$1, $2]::text[]')
+      expect(compiled.parameters).toContain('tag1')
+      expect(compiled.parameters).toContain('tag2')
+    })
+
+    test('prepend() single value generates array_prepend', () => {
+      const query = db
+        .updateTable('products')
+        .set({ tags: pg.array('tags').prepend('urgent') })
+        .where('id', '=', 1)
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('array_prepend($1::text, "tags")')
+      expect(compiled.parameters).toContain('urgent')
+    })
+
+    test('prepend() multiple values generates array concatenation', () => {
+      const query = db
+        .updateTable('products')
+        .set({ tags: pg.array('tags').prepend(['urgent', 'priority']) })
+        .where('id', '=', 1)
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('ARRAY[$1, $2]::text[] || "tags"')
+      expect(compiled.parameters).toContain('urgent')
+      expect(compiled.parameters).toContain('priority')
+    })
+
+    test('remove() generates array_remove', () => {
+      const query = db
+        .updateTable('products')
+        .set({ tags: pg.array('tags').remove('deprecated') })
+        .where('id', '=', 1)
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('array_remove("tags", $1)')
+      expect(compiled.parameters).toContain('deprecated')
+    })
+
+    test('removeFirst() generates array slice', () => {
+      const query = db
+        .updateTable('products')
+        .set({ tags: pg.array('tags').removeFirst() })
+        .where('id', '=', 1)
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"tags"[2:array_length("tags", 1)]')
+    })
+
+    test('removeLast() generates array slice', () => {
+      const query = db
+        .updateTable('products')
+        .set({ tags: pg.array('tags').removeLast() })
+        .where('id', '=', 1)
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"tags"[1:array_length("tags", 1)-1]')
+    })
+
+    test('append() with empty array returns column unchanged', () => {
+      const query = db
+        .updateTable('products')
+        .set({ tags: pg.array('tags').append([]) })
+        .where('id', '=', 1)
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"tags" = "tags"')
+    })
+
+    test('prepend() with empty array returns column unchanged', () => {
+      const query = db
+        .updateTable('products')
+        .set({ tags: pg.array('tags').prepend([]) })
+        .where('id', '=', 1)
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"tags" = "tags"')
+    })
+
+    test('append() with number array uses correct typing', () => {
+      const query = db
+        .updateTable('products')
+        .set({ scores: pg.array<number>('scores').append(95) })
+        .where('id', '=', 1)
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('array_append("scores", $1::integer)')
+      expect(compiled.parameters).toContain(95)
+    })
+  })
+
+  describe('Array select operations SQL compilation', () => {
+    test('first() generates array index access', () => {
+      const query = db
+        .selectFrom('products')
+        .select([
+          'id',
+          pg.array('tags').first().as('first_tag')
+        ])
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"tags"[1] as "first_tag"')
+    })
+
+    test('last() generates array length-based access', () => {
+      const query = db
+        .selectFrom('products')
+        .select([
+          'id',
+          pg.array('tags').last().as('last_tag')
+        ])
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"tags"[array_length("tags", 1)] as "last_tag"')
+    })
+
+    test('first() can be used in WHERE clause', () => {
+      const query = db
+        .selectFrom('products')
+        .selectAll()
+        .where(pg.array('tags').first(), '=', 'priority')
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"tags"[1] = $1')
+      expect(compiled.parameters).toContain('priority')
+    })
+
+    test('last() can be used in WHERE clause', () => {
+      const query = db
+        .selectFrom('products')
+        .selectAll()
+        .where(pg.array('tags').last(), '=', 'final')
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"tags"[array_length("tags", 1)] = $1')
+      expect(compiled.parameters).toContain('final')
+    })
+  })
+
   describe('Column reference handling', () => {
     test('simple column names are quoted correctly', () => {
       const query = db
