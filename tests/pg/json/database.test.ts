@@ -397,6 +397,99 @@ describe('JSON Database Integration', () => {
     })
   })
 
+  describe('JSON path SELECT operations', () => {
+    test('path() retrieves JSON values in SELECT clause', async () => {
+      const results = await db
+        .selectFrom('users')
+        .select([
+          'id',
+          'name',
+          pg.json('preferences').path('theme').as('theme_value'),
+          pg.json('preferences').path(['notifications', 'email']).as('email_setting')
+        ])
+        .where(pg.json('preferences').hasKey('theme'))
+        .execute()
+
+      expect(results.length).toBeGreaterThan(0)
+      
+      for (const user of results) {
+        expect(user.theme_value).toBeDefined()
+        expect(user.email_setting).toBeDefined()
+        // Values should be accessible (exact match depends on JSON structure)
+        expect(user.theme_value).not.toBeNull()
+        expect(user.email_setting).not.toBeNull()
+      }
+    })
+
+    test('path() with array paths works in SELECT', async () => {
+      const results = await db
+        .selectFrom('users')
+        .select([
+          'id',
+          pg.json('preferences').path(['notifications', 'push']).as('push_notifications'),
+          pg.json('permissions').path(['read']).as('read_permission')
+        ])
+        .where(pg.json('preferences').path(['notifications']).exists())
+        .execute()
+
+      expect(results.length).toBeGreaterThan(0)
+      
+      for (const user of results) {
+        expect(user.push_notifications).toBeDefined()
+        expect(user.read_permission).toBeDefined()
+      }
+    })
+
+    test('mixed path() and asText() in SELECT', async () => {
+      const results = await db
+        .selectFrom('users')
+        .select([
+          'id',
+          pg.json('preferences').path('theme').as('theme_json'),        // Returns JSON value
+          pg.json('preferences').path('theme').asText().as('theme_text') // Returns text
+        ])
+        .where(pg.json('preferences').hasKey('theme'))
+        .limit(5)
+        .execute()
+
+      expect(results.length).toBeGreaterThan(0)
+      
+      for (const user of results) {
+        // Both should exist but have different types potentially
+        expect(user.theme_json).toBeDefined()
+        expect(user.theme_text).toBeDefined()
+        
+        // For simple string values, they should be the same
+        if (typeof user.theme_json === 'string') {
+          expect(user.theme_text).toBe(user.theme_json)
+        }
+      }
+    })
+
+    test('complex SELECT with nested paths', async () => {
+      const results = await db
+        .selectFrom('users')
+        .select([
+          'id',
+          'name',
+          pg.json('permissions').path('admin').as('is_admin'),
+          pg.json('preferences').path(['notifications', 'email']).as('email_notifications'),
+          pg.json('preferences').path('theme').asText().as('user_theme')
+        ])
+        .where(pg.json('permissions').hasKey('admin'))
+        .execute()
+
+      expect(results.length).toBeGreaterThan(0)
+      
+      for (const user of results) {
+        expect(user.is_admin).toBeDefined()
+        expect(user.email_notifications).toBeDefined()
+        expect(user.user_theme).toBeDefined()
+        expect(typeof user.user_theme).toBe('string')
+      }
+    })
+  })
+
   describe('Complex JSON queries', () => {
     test('multiple JSON operations combined', async () => {
       const results = await db

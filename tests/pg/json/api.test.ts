@@ -220,6 +220,34 @@ describe('JSON API Tests', () => {
       })
     })
 
+    test('path() returns selectable expressions', () => {
+      // path() should be usable in SELECT clauses
+      const pathExpressions = [
+        pg.json('preferences').path('theme'),                    // Default JsonValue type
+        pg.json('preferences').path(['user', 'profile']),       // Nested path
+      ]
+      
+      pathExpressions.forEach(expr => {
+        expect(typeof expr).toBe('object')
+        expect(expr).not.toBeNull()
+        // Should have both SELECT capabilities and operation methods
+        expect(typeof expr.equals).toBe('function')
+        expect(typeof expr.contains).toBe('function')
+        expect(typeof expr.exists).toBe('function')
+        expect(typeof expr.greaterThan).toBe('function')
+        expect(typeof expr.asText).toBe('function')
+      })
+
+      // asText() returns a different interface (text-specific)
+      const textExpr = pg.json('preferences').path('theme').asText()
+      expect(typeof textExpr).toBe('object')
+      expect(textExpr).not.toBeNull()
+      expect(typeof textExpr.equals).toBe('function')
+      expect(typeof textExpr.greaterThan).toBe('function')
+      expect(typeof textExpr.lessThan).toBe('function')
+      // asText() should NOT have contains() or exists() - these are JSON-specific
+    })
+
     test('boolean expressions have correct type inference', () => {
       // These should all be Expression<boolean>
       const booleanExpressions = [
@@ -250,6 +278,66 @@ describe('JSON API Tests', () => {
       stringExpressions.forEach(expr => {
         expect(typeof expr).toBe('object')
       })
+    })
+  })
+
+  describe('New SELECT Functionality', () => {
+    test('path() can be used in SELECT clauses', () => {
+      expect(() => {
+        // path() expressions should be valid for SELECT clauses
+        const pathExpressions = [
+          pg.json('profile').path('age'),                          // JsonValue | null
+          pg.json('profile').path(['user', 'name']),               // JsonValue | null  
+          pg.json('metadata').path('created_at')                   // JsonValue | null
+        ]
+        
+        pathExpressions.forEach(expr => {
+          // Should have both selector and operation capabilities
+          expect(typeof expr.equals).toBe('function')
+          expect(typeof expr.contains).toBe('function')
+          expect(typeof expr.exists).toBe('function')
+          expect(typeof expr.greaterThan).toBe('function')
+          expect(typeof expr.asText).toBe('function')
+        })
+
+        // asText() expressions have different capabilities (text-specific)
+        const textExpr = pg.json('preferences').path('theme').asText()
+        expect(typeof textExpr.equals).toBe('function')
+        expect(typeof textExpr.greaterThan).toBe('function')
+        expect(typeof textExpr.lessThan).toBe('function')
+      }).not.toThrow()
+    })
+
+    test('backward compatibility for WHERE clauses', () => {
+      expect(() => {
+        // All existing WHERE functionality should still work
+        const whereConditions = [
+          pg.json('preferences').path('theme').equals('dark'),
+          pg.json('profile').path('age').greaterThan(18),
+          pg.json('metadata').path(['user', 'active']).equals(true),
+          pg.json('settings').path('enabled').exists()
+        ]
+        
+        whereConditions.forEach(condition => {
+          expect(typeof condition).toBe('object')
+          expect(condition).not.toBeNull()
+        })
+      }).not.toThrow()
+    })
+
+    test('mixed SELECT and WHERE usage works', () => {
+      expect(() => {
+        // Should be able to use same expressions in both contexts
+        const pathExpr = pg.json('profile').path('age')
+        
+        // Can be used for comparison
+        const whereCondition = pathExpr.greaterThan(18)
+        expect(typeof whereCondition).toBe('object')
+        
+        // Same expression type can be used for selection (conceptually)
+        const selectExpr = pg.json('profile').path('age')
+        expect(typeof selectExpr.equals).toBe('function')
+      }).not.toThrow()
     })
   })
 

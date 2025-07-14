@@ -166,6 +166,51 @@ describe('JSON SQL Generation', () => {
       expect(compiled.sql).toContain('{theme}')
       expect(compiled.sql).toContain('as "theme_text"')
     })
+
+    test('path() in SELECT clause uses JSON mode', () => {
+      const query = db
+        .selectFrom('users')
+        .select([
+          'id',
+          pg.json('preferences').path('theme').as('theme'),
+          pg.json('metadata').path(['user', 'profile']).as('user_profile')
+        ])
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"preferences"#>')  // JSON mode for SELECT
+      expect(compiled.sql).toContain('"metadata"#>')     // JSON mode for nested path
+      expect(compiled.sql).toContain('{theme}')
+      expect(compiled.sql).toContain('{user,profile}')
+      expect(compiled.sql).toContain('as "theme"')
+      expect(compiled.sql).toContain('as "user_profile"')
+    })
+
+    test('mixed SELECT and WHERE usage', () => {
+      const query = db
+        .selectFrom('users')
+        .select([
+          'id',
+          pg.json('profile').path('age').as('age'),
+          pg.json('profile').path('name').asText().as('name_text')
+        ])
+        .where(pg.json('profile').path('age').greaterThan(18))
+        .where(pg.json('profile').path('active').equals(true))
+      
+      const compiled = query.compile()
+      
+      // Should have both SELECT and WHERE clauses
+      expect(compiled.sql).toContain('select')
+      expect(compiled.sql).toContain('where')
+      expect(compiled.sql).toContain('as "age"')
+      expect(compiled.sql).toContain('as "name_text"')
+      
+      // WHERE conditions should use proper operators
+      expect(compiled.sql).toContain('"profile"#>')  // numeric comparison
+      expect(compiled.sql).toContain('> $1')         // greater than
+      expect(compiled.sql).toContain('= $2')         // equals
+      expect(compiled.parameters).toEqual([18, 'true'])
+    })
   })
 
   describe('Comparison operations', () => {

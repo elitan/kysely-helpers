@@ -119,11 +119,21 @@ interface TextPathOperations {
 
 ### 5. Complex Selections
 ```typescript
-// Get user's theme preference
-.select(pg.json('preferences').path('theme').as('user_theme'))
+// Get user's theme preference (JsonValue | null)
+.select([pg.json('preferences').path('theme').as('user_theme')])
 
-// Get user's full notification settings
-.select(pg.json('config').path(['notifications']).as('notification_config'))
+// Get user's full notification settings (JsonValue | null)
+.select([pg.json('config').path(['notifications']).as('notification_config')])
+
+// With explicit typing for better type safety
+.select([
+  pg.json('profile').path<number>('age').as('age'),           // number | null
+  pg.json('profile').path<string>('name').as('name'),        // string | null
+  pg.json('profile').path<boolean>('active').as('active')    // boolean | null
+])
+
+// Get as text when needed
+.select([pg.json('preferences').path('theme').asText().as('theme_text')]) // string | null
 ```
 
 ### 6. Explicit Text Mode
@@ -149,6 +159,41 @@ The API automatically chooses between JSON (#>) and text (#>>) modes based on th
 ### Manual Override
 - Use `.asText()` when auto-detection doesn't match your needs
 
+## Type System
+
+### JsonValue Type
+All path extractions return `JsonValue | null` by default, where:
+
+```typescript
+type JsonValue = 
+  | null
+  | string
+  | number
+  | boolean
+  | { [key: string]: JsonValue }
+  | JsonValue[]
+```
+
+### Explicit Typing
+Users can specify expected types for better type safety:
+
+```typescript
+.select([
+  pg.json('profile').path<number>('age').as('age'),        // number | null
+  pg.json('profile').path<string>('name').as('name'),      // string | null
+  pg.json('profile').path<User>('user').as('user')         // User | null
+])
+```
+
+### Text Mode
+`.asText()` always returns `string | null`:
+
+```typescript
+.select([
+  pg.json('data').path('anything').asText().as('text')     // string | null
+])
+```
+
 ## Benefits
 
 1. **Single Pattern**: Always `path()` then operation - easy to learn
@@ -158,6 +203,8 @@ The API automatically chooses between JSON (#>) and text (#>>) modes based on th
 5. **Flexible**: String or array paths work identically
 6. **Consistent**: All operations chain the same way
 7. **Clean**: No legacy methods or confusing alternatives
+8. **Type Honest**: Types reflect runtime reality (JSON is untyped)
+9. **Selectable**: `path()` works in both WHERE and SELECT clauses
 
 ## Implementation Approach
 

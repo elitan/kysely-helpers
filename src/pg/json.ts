@@ -1,4 +1,5 @@
 import { sql, type Expression, type RawBuilder } from 'kysely'
+import type { JsonValue } from '../types/index.js'
 
 /**
  * PostgreSQL JSONB helper functions
@@ -16,9 +17,10 @@ import { sql, type Expression, type RawBuilder } from 'kysely'
  */
 
 /**
- * JSON path operations builder
+ * JSON path operations builder  
+ * Extends RawBuilder so it can be used in SELECT clauses
  */
-export interface JsonPathOperations {
+export interface JsonPathOperations<T = JsonValue> extends RawBuilder<T | null> {
   /**
    * JSON contains operation (@>)
    * Uses #> operator for JSON comparison
@@ -120,14 +122,19 @@ export interface JsonOperations {
    * 
    * @example
    * ```ts
-   * // String path
+   * // String path with automatic JsonValue typing
    * .where(pg.json('preferences').path('theme').equals('dark'))
+   * .select([pg.json('preferences').path('theme').as('theme')]) // Type: JsonValue | null
    * 
    * // Array path for nested access
    * .where(pg.json('config').path(['user', 'settings', 'language']).equals('en'))
+   * 
+   * // Explicit typing for better type safety
+   * .select([pg.json('profile').path<number>('age').as('age')]) // Type: number | null
+   * .select([pg.json('profile').path<string>('name').as('name')]) // Type: string | null
    * ```
    */
-  path(path: string | string[]): JsonPathOperations
+  path<T = JsonValue>(path: string | string[]): JsonPathOperations<T>
 
   /**
    * JSON contains operation (@>)
@@ -226,13 +233,13 @@ export function json(column: string): JsonOperations {
   const columnRef = sql.ref(column)
 
   return {
-    path: (path: string | string[]) => {
+    path: <T = JsonValue>(path: string | string[]) => {
       const pathArray = Array.isArray(path) ? path : [path]
       const pathString = `'{${pathArray.join(',')}}'`
       const jsonPathRef = sql`${columnRef}#>${sql.raw(pathString)}`
       const textPathRef = sql`${columnRef}#>>${sql.raw(pathString)}`
       
-      return {
+      const operations = {
         contains: (value: any) => {
           return sql<boolean>`${jsonPathRef} @> ${serializeJsonValue(value)}`
         },
@@ -286,6 +293,11 @@ export function json(column: string): JsonOperations {
           return Object.assign(typedTextPathRef, textOps)
         }
       }
+      
+      // Return jsonPathRef with additional methods for when used in SELECT
+      // Cast to RawBuilder<T | null> for proper typing
+      const typedJsonPathRef = jsonPathRef as RawBuilder<T | null>
+      return Object.assign(typedJsonPathRef, operations)
     },
 
     contains: (value: any) => {
