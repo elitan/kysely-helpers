@@ -206,11 +206,11 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
   })
 
   describe('JSON Operations Integration', () => {
-    test('get() works with nested JSON objects', async () => {
+    test('path() works with nested JSON objects', async () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where(pg.json('metadata').get('difficulty').equals('beginner'))
+        .where(pg.json('metadata').path('difficulty').equals('beginner'))
         .execute()
 
       expect(results).toBeDefined()
@@ -221,15 +221,15 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       }
     })
 
-    test('getText() extracts text values', async () => {
+    test('path().asText() extracts text values', async () => {
       const results = await db
         .selectFrom('users')
         .select([
           'id',
           'name',
-          pg.json('preferences').getText('theme').as('theme')
+          pg.json('preferences').path('theme').asText().as('theme')
         ])
-        .where(pg.json('preferences').getText('theme'), '=', 'dark')
+        .where(pg.json('preferences').path('theme').asText().equals('dark'))
         .execute()
 
       expect(results).toBeDefined()
@@ -387,10 +387,10 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           'tags',
           'metadata',
           pg.array('tags').length().as('tag_count'),
-          pg.json('metadata').getText('difficulty').as('difficulty')
+          pg.json('metadata').path('difficulty').asText().as('difficulty')
         ])
         .where(pg.array('tags').includes('tutorial'))
-        .where(pg.json('metadata').get('difficulty').equals('beginner'))
+        .where(pg.json('metadata').path('difficulty').equals('beginner'))
         .where(pg.array('categories').overlaps(['education']))
         .execute()
 
@@ -417,8 +417,8 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           'prices',
           'metadata',
           pg.array('tags').length().as('tag_count'),
-          pg.json('metadata').getText('difficulty').as('difficulty'),
-          pg.json('metadata').get('rating').asText().as('rating')
+          pg.json('metadata').path('difficulty').asText().as('difficulty'),
+          pg.json('metadata').path('rating').asText().as('rating')
         ])
         .where(pg.array('tags').overlaps(userInterests))
         .where(pg.json('metadata').hasKey('difficulty'))
@@ -449,12 +449,12 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           'id',
           'name',
           'roles',
-          pg.json('preferences').getText('theme').as('theme'),
+          pg.json('preferences').path('theme').asText().as('theme'),
           pg.json('preferences').path(['notifications', 'email']).asText().as('email_notifications'),
           pg.array('roles').length().as('role_count')
         ])
         .where(pg.array('roles').includes('user'))
-        .where(pg.json('permissions').get('read').equals(true))
+        .where(pg.json('permissions').path('read').equals(true))
         .where(pg.json('preferences').hasKey('theme'))
         .orderBy('name')
         .execute()
