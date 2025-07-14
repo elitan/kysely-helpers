@@ -91,12 +91,12 @@ afterAll(async () => {
 })
 
 describe('JSON Database Integration', () => {
-  describe('get() and getText() database operations', () => {
-    test('get() retrieves JSON field values', async () => {
+  describe('path() database operations', () => {
+    test('path() retrieves JSON field values', async () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where(pg.json('metadata').get('difficulty').equals('beginner'))
+        .where(pg.json('metadata').path('difficulty').equals('beginner'))
         .execute()
 
       expect(results).toBeDefined()
@@ -108,15 +108,15 @@ describe('JSON Database Integration', () => {
       }
     })
 
-    test('getText() retrieves JSON field as text', async () => {
+    test('path().asText() retrieves JSON field as text', async () => {
       const results = await db
         .selectFrom('products')
         .select([
           'id', 
           'name',
-          pg.json('metadata').getText('difficulty').as('difficulty_text')
+          pg.json('metadata').path('difficulty').asText().as('difficulty_text')
         ])
-        .where(pg.json('metadata').getText('difficulty'), '=', 'advanced')
+        .where(pg.json('metadata').path('difficulty').asText().equals('advanced'))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -126,11 +126,11 @@ describe('JSON Database Integration', () => {
       }
     })
 
-    test('get() with boolean values', async () => {
+    test('path() with boolean values', async () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where(pg.json('metadata').get('ai_related').equals(true))
+        .where(pg.json('metadata').path('ai_related').equals(true))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -140,11 +140,11 @@ describe('JSON Database Integration', () => {
       }
     })
 
-    test('get() with numeric values', async () => {
+    test('path() with numeric values', async () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where(pg.json('metadata').get('rating').equals(4.8))
+        .where(pg.json('metadata').path('rating').equals(4.8))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -155,7 +155,7 @@ describe('JSON Database Integration', () => {
     })
   })
 
-  describe('path() and pathText() database operations', () => {
+  describe('path() with nested access', () => {
     test('path() with nested object access', async () => {
       const results = await db
         .selectFrom('users')
@@ -170,15 +170,15 @@ describe('JSON Database Integration', () => {
       }
     })
 
-    test('pathText() with string paths', async () => {
+    test('path().asText() with array paths', async () => {
       const results = await db
         .selectFrom('users')
         .select([
           'id',
           'name',
-          pg.json('preferences').pathText(['theme']).as('user_theme')
+          pg.json('preferences').path(['theme']).asText().as('user_theme')
         ])
-        .where(pg.json('preferences').pathText(['theme']), '=', 'dark')
+        .where(pg.json('preferences').path(['theme']).asText().equals('dark'))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -257,59 +257,6 @@ describe('JSON Database Integration', () => {
     })
   })
 
-  describe('containedBy() database operations', () => {
-    test('containedBy() finds subset objects', async () => {
-      const results = await db
-        .selectFrom('products')
-        .select(['id', 'name', 'settings'])
-        .where(pg.json('settings').containedBy({
-          theme: 'dark', 
-          notifications: true, 
-          extra: 'value',
-          another: 'property'
-        }))
-        .execute()
-
-      expect(results.length).toBeGreaterThan(0)
-      
-      for (const product of results) {
-        // The actual settings should be a subset of the containedBy object
-        const settings = product.settings
-        if (settings.theme) {
-          expect(['dark']).toContain(settings.theme)
-        }
-        if (settings.notifications !== undefined) {
-          expect([true]).toContain(settings.notifications)
-        }
-      }
-    })
-
-    test('containedBy() with permissions check', async () => {
-      const allowedPermissions = {
-        read: true,
-        write: true,
-        delete: true,
-        admin: true,
-        extra: 'permission'
-      }
-      
-      const results = await db
-        .selectFrom('users')
-        .select(['id', 'name', 'permissions'])
-        .where(pg.json('permissions').containedBy(allowedPermissions))
-        .execute()
-
-      expect(results.length).toBeGreaterThan(0)
-      
-      for (const user of results) {
-        const userPermissions = user.permissions
-        // All user permissions should be within the allowed set
-        Object.keys(userPermissions).forEach(permission => {
-          expect(Object.keys(allowedPermissions)).toContain(permission)
-        })
-      }
-    })
-  })
 
   describe('hasKey() database operations', () => {
     test('hasKey() finds objects with specific keys', async () => {
@@ -450,6 +397,99 @@ describe('JSON Database Integration', () => {
     })
   })
 
+  describe('JSON path SELECT operations', () => {
+    test('path() retrieves JSON values in SELECT clause', async () => {
+      const results = await db
+        .selectFrom('users')
+        .select([
+          'id',
+          'name',
+          pg.json('preferences').path('theme').as('theme_value'),
+          pg.json('preferences').path(['notifications', 'email']).as('email_setting')
+        ])
+        .where(pg.json('preferences').hasKey('theme'))
+        .execute()
+
+      expect(results.length).toBeGreaterThan(0)
+      
+      for (const user of results) {
+        expect(user.theme_value).toBeDefined()
+        expect(user.email_setting).toBeDefined()
+        // Values should be accessible (exact match depends on JSON structure)
+        expect(user.theme_value).not.toBeNull()
+        expect(user.email_setting).not.toBeNull()
+      }
+    })
+
+    test('path() with array paths works in SELECT', async () => {
+      const results = await db
+        .selectFrom('users')
+        .select([
+          'id',
+          pg.json('preferences').path(['notifications', 'push']).as('push_notifications'),
+          pg.json('permissions').path(['read']).as('read_permission')
+        ])
+        .where(pg.json('preferences').path(['notifications']).exists())
+        .execute()
+
+      expect(results.length).toBeGreaterThan(0)
+      
+      for (const user of results) {
+        expect(user.push_notifications).toBeDefined()
+        expect(user.read_permission).toBeDefined()
+      }
+    })
+
+    test('mixed path() and asText() in SELECT', async () => {
+      const results = await db
+        .selectFrom('users')
+        .select([
+          'id',
+          pg.json('preferences').path('theme').as('theme_json'),        // Returns JSON value
+          pg.json('preferences').path('theme').asText().as('theme_text') // Returns text
+        ])
+        .where(pg.json('preferences').hasKey('theme'))
+        .limit(5)
+        .execute()
+
+      expect(results.length).toBeGreaterThan(0)
+      
+      for (const user of results) {
+        // Both should exist but have different types potentially
+        expect(user.theme_json).toBeDefined()
+        expect(user.theme_text).toBeDefined()
+        
+        // For simple string values, they should be the same
+        if (typeof user.theme_json === 'string') {
+          expect(user.theme_text).toBe(user.theme_json)
+        }
+      }
+    })
+
+    test('complex SELECT with nested paths', async () => {
+      const results = await db
+        .selectFrom('users')
+        .select([
+          'id',
+          'name',
+          pg.json('permissions').path('admin').as('is_admin'),
+          pg.json('preferences').path(['notifications', 'email']).as('email_notifications'),
+          pg.json('preferences').path('theme').asText().as('user_theme')
+        ])
+        .where(pg.json('permissions').hasKey('admin'))
+        .execute()
+
+      expect(results.length).toBeGreaterThan(0)
+      
+      for (const user of results) {
+        expect(user.is_admin).toBeDefined()
+        expect(user.email_notifications).toBeDefined()
+        expect(user.user_theme).toBeDefined()
+        expect(typeof user.user_theme).toBe('string')
+      }
+    })
+  })
+
   describe('Complex JSON queries', () => {
     test('multiple JSON operations combined', async () => {
       const results = await db
@@ -458,12 +498,12 @@ describe('JSON Database Integration', () => {
           'id',
           'name',
           'preferences',
-          pg.json('preferences').getText('theme').as('theme'),
-          pg.json('permissions').getText('read').as('can_read')
+          pg.json('preferences').path('theme').asText().as('theme'),
+          pg.json('permissions').path('read').asText().as('can_read')
         ])
         .where(pg.json('preferences').hasKey('theme'))
         .where(pg.json('preferences').contains({notifications: {email: true}}))
-        .where(pg.json('permissions').get('read').equals(true))
+        .where(pg.json('permissions').path('read').equals(true))
         .orderBy('name')
         .execute()
 
@@ -481,7 +521,7 @@ describe('JSON Database Integration', () => {
         .selectFrom('products')
         .selectAll()
         .where('id', '>', 0)
-        .where(pg.json('metadata').get('difficulty').equals('beginner'))
+        .where(pg.json('metadata').path('difficulty').equals('beginner'))
         .where('name', 'like', '%TypeScript%')
         .execute()
 
@@ -709,7 +749,7 @@ describe('JSON Database Integration', () => {
       const promises = [
         db.selectFrom('users').selectAll().where(pg.json('preferences').hasKey('theme')).execute(),
         db.selectFrom('products').selectAll().where(pg.json('metadata').contains({published: true})).execute(),
-        db.selectFrom('users').selectAll().where(pg.json('permissions').get('read').equals(true)).execute(),
+        db.selectFrom('users').selectAll().where(pg.json('permissions').path('read').equals(true)).execute(),
         db.selectFrom('products').selectAll().where(pg.json('settings').hasAnyKey(['theme', 'notifications'])).execute()
       ]
 

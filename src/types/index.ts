@@ -12,9 +12,21 @@ import type { Expression } from 'kysely'
 export type PgArray<T> = T[]
 
 /**
- * PostgreSQL JSONB type
+ * PostgreSQL JSONB type (for full columns)
  */
 export type PgJsonb = Record<string, any> | any[]
+
+/**
+ * Valid JSON value types (for individual path extractions)
+ * Represents any value that can exist in JSON
+ */
+export type JsonValue = 
+  | null
+  | string
+  | number
+  | boolean
+  | { [key: string]: JsonValue }
+  | JsonValue[]
 
 /**
  * PostgreSQL vector type (pgvector extension)
