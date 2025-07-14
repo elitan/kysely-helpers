@@ -98,11 +98,8 @@ afterAll(async () => {
   }
 })
 
-// Only run database tests if pgvector is available
-const testWithPgVector = pgvectorAvailable ? describe : describe.skip
-
 describe('Vector Database Integration', () => {
-  testWithPgVector('Basic vector operations', () => {
+  describe('Basic vector operations', () => {
     test('similarity() with cosine algorithm (default)', async () => {
       const searchVector = [0.1, 0.2, 0.3, 0.4, 0.5]
       
@@ -223,7 +220,7 @@ describe('Vector Database Integration', () => {
     })
   })
 
-  testWithPgVector('Complex vector queries', () => {
+  describe('Complex vector queries', () => {
     test('semantic search with multiple criteria', async () => {
       const searchVector = [0.3, 0.6, 0.9, 0.2, 0.5]
       
@@ -306,37 +303,51 @@ describe('Vector Database Integration', () => {
     })
   })
 
-  testWithPgVector('Edge cases and performance', () => {
+  describe('Edge cases and performance', () => {
     test('handles empty vector gracefully', async () => {
+      // Empty vectors are not supported by pgvector, so this should throw an error
       const emptyVector: number[] = []
       
-      const results = await db
-        .selectFrom('document_embeddings')
-        .select([
-          'id',
-          pg.vector('embedding').similarity(emptyVector).as('similarity')
-        ])
-        .limit(1)
-        .execute()
-
-      expect(Array.isArray(results)).toBe(true)
-      // Should execute without error, even though semantically it might not make sense
+      try {
+        await db
+          .selectFrom('document_embeddings')
+          .select([
+            'id',
+            pg.vector('embedding').similarity(emptyVector).as('similarity')
+          ])
+          .limit(1)
+          .execute()
+        
+        // If we get here, the test should fail because empty vectors should not be allowed
+        expect(false).toBe(true)
+      } catch (error) {
+        // This is expected - pgvector doesn't support empty vectors
+        expect(error).toBeInstanceOf(Error)
+        expect(error.message).toContain('vector must have at least 1 dimension')
+      }
     })
 
-    test('handles high-dimensional vectors', async () => {
-      const highDimVector = Array.from({length: 1000}, (_, i) => i / 1000)
+    test('handles dimension mismatch gracefully', async () => {
+      // Test with a vector that doesn't match the database dimension (5D)
+      const wrongDimVector = Array.from({length: 10}, (_, i) => i / 10)
       
-      const results = await db
-        .selectFrom('document_embeddings')
-        .select([
-          'id',
-          pg.vector('embedding').similarity(highDimVector).as('similarity')
-        ])
-        .limit(3)
-        .execute()
-
-      expect(Array.isArray(results)).toBe(true)
-      // Should work with high-dimensional vectors
+      try {
+        await db
+          .selectFrom('document_embeddings')
+          .select([
+            'id',
+            pg.vector('embedding').similarity(wrongDimVector).as('similarity')
+          ])
+          .limit(1)
+          .execute()
+        
+        // If we get here, the test should fail because dimensions should match
+        expect(false).toBe(true)
+      } catch (error) {
+        // This is expected - pgvector requires matching dimensions
+        expect(error).toBeInstanceOf(Error)
+        expect(error.message).toContain('different vector dimensions')
+      }
     })
 
     test('concurrent vector operations', async () => {
@@ -391,7 +402,7 @@ describe('Vector Database Integration', () => {
     })
   })
 
-  testWithPgVector('Data manipulation with vectors', () => {
+  describe('Data manipulation with vectors', () => {
     test('insert and query vector data', async () => {
       const testEmbedding = [0.1, 0.2, 0.3, 0.4, 0.5]
       const testContent = 'Test document for vector operations'

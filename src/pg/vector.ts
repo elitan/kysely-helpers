@@ -141,7 +141,7 @@ export function vector(column: string): VectorOperations {
         case 'dot':
           // Convert dot product to 0-1 range (assuming normalized vectors)
           // Dot product range is typically [-1, 1], so we map to [0, 1]
-          return sql<number>`(${columnRef} <#> ${vectorStr}::vector + 1.0) / 2.0`
+          return sql<number>`((${columnRef} <#> ${vectorStr}::vector) + 1.0) / 2.0`
         
         default:
           throw new Error(`Unsupported similarity algorithm: ${algorithm}`)
