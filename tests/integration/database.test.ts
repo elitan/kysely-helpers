@@ -111,7 +111,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').includes('typescript'))
+        .where(pg.array('tags').hasAllOf(['typescript']))
         .execute()
 
       expect(results).toBeDefined()
@@ -128,7 +128,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').contains(['tutorial', 'programming']))
+        .where(pg.array('tags').hasAllOf(['tutorial', 'programming']))
         .execute()
 
       expect(results).toBeDefined()
@@ -145,7 +145,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'categories'])
-        .where(pg.array('categories').overlaps(['education', 'electronics']))
+        .where(pg.array('categories').hasAnyOf(['education', 'electronics']))
         .execute()
 
       expect(results).toBeDefined()
@@ -189,8 +189,8 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           'categories',
           pg.array('tags').length().as('tag_count')
         ])
-        .where(pg.array('tags').includes('tutorial'))
-        .where(pg.array('categories').overlaps(['education']))
+        .where(pg.array('tags').hasAllOf(['tutorial']))
+        .where(pg.array('categories').hasAnyOf(['education']))
         .where(pg.array('tags').length(), '>=', 3)
         .orderBy('name')
         .execute()
@@ -389,9 +389,9 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           pg.array('tags').length().as('tag_count'),
           pg.json('metadata').path('difficulty').asText().as('difficulty')
         ])
-        .where(pg.array('tags').includes('tutorial'))
+        .where(pg.array('tags').hasAllOf(['tutorial']))
         .where(pg.json('metadata').path('difficulty').equals('beginner'))
-        .where(pg.array('categories').overlaps(['education']))
+        .where(pg.array('categories').hasAnyOf(['education']))
         .execute()
 
       expect(results).toBeDefined()
@@ -420,7 +420,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           pg.json('metadata').path('difficulty').asText().as('difficulty'),
           pg.json('metadata').path('rating').asText().as('rating')
         ])
-        .where(pg.array('tags').overlaps(userInterests))
+        .where(pg.array('tags').hasAnyOf(userInterests))
         .where(pg.json('metadata').hasKey('difficulty'))
         .where(pg.array('tags').length(), '>=', 3)
         .orderBy('rating', 'desc')
@@ -453,7 +453,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           pg.json('preferences').path(['notifications', 'email']).asText().as('email_notifications'),
           pg.array('roles').length().as('role_count')
         ])
-        .where(pg.array('roles').includes('user'))
+        .where(pg.array('roles').hasAllOf(['user']))
         .where(pg.json('permissions').path('read').equals(true))
         .where(pg.json('preferences').hasKey('theme'))
         .orderBy('name')
@@ -478,7 +478,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name'])
-        .where(pg.array('tags').overlaps(largeTagArray))
+        .where(pg.array('tags').hasAnyOf(largeTagArray))
         .execute()
 
       expect(results).toBeDefined()
@@ -489,7 +489,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').contains([]))
+        .where(pg.array('tags').hasAllOf([]))
         .execute()
 
       expect(results).toBeDefined()
@@ -523,7 +523,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name'])
-        .where(pg.array('tags').includes(maliciousInput))
+        .where(pg.array('tags').hasAllOf([maliciousInput]))
         .execute()
 
       expect(results).toBeDefined()
