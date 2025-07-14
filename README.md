@@ -245,29 +245,27 @@ await db
   })
   .execute()
 
-  // Convert vectors back to JavaScript arrays → string_to_array(...)
-  .select(["id", "title", pg.vector("embedding").toArray().as("embedding")])
+// Semantic search with similarity (0-1 scale, higher = more similar)
+const results = await db
+  .selectFrom("documents")
+  .select([
+    "id",
+    "title", 
+    "content",
+    pg.vector("embedding").similarity(searchVector).as("similarity")
+  ])
+  .where(pg.vector("embedding").similarity(searchVector), '>', 0.8)
+  .orderBy("similarity", "desc")
+  .limit(10)
+  .execute()
 
-  // Find vectors with 80%+ similarity → embedding <-> $1 < 0.2
-  .where(pg.vector("embedding").similarTo(searchVector, 0.8))
+// Use different similarity algorithms
+.where(pg.vector("embedding").similarity(searchVector, 'cosine'), '>', 0.8)
+.where(pg.vector("embedding").similarity(searchVector, 'euclidean'), '>', 0.7)
+.where(pg.vector("embedding").similarity(searchVector, 'dot'), '>', 0.6)
 
-  // Order by most similar first → ORDER BY embedding <-> $1
-  .orderBy(pg.vector("embedding").distance(searchVector))
-
-  // Euclidean distance → embedding <-> $1 < 0.5
-  .where(pg.vector("embedding").l2Distance(searchVector), "<", 0.5)
-
-  // Cosine similarity → embedding <=> $1 < 0.3
-  .where(pg.vector("embedding").cosineDistance(searchVector), "<", 0.3)
-
-  // Dot product → embedding <#> $1 > 0.7
-  .where(pg.vector("embedding").innerProduct(searchVector), ">", 0.7)
-
-  // Get vector dimensions → vector_dims(embedding)
-  .select([pg.vector("embedding").dimensions().as("dims")])
-
-  // Get vector magnitude → vector_norm(embedding)
-  .select([pg.vector("embedding").norm().as("magnitude")]);
+// Convert vectors back to JavaScript arrays → string_to_array(...)
+.select(["id", "title", pg.vector("embedding").toArray().as("embedding")])
 ```
 
 **Use cases:** Semantic search, recommendation engines, document similarity, image recognition, chatbot context matching.
@@ -275,8 +273,10 @@ await db
 **Key features:**
 
 - `pg.embedding()` - Convert arrays to proper PostgreSQL vector format for insertion
+- `pg.vector().similarity()` - Calculate similarity (0-1 scale, higher = more similar)
 - `pg.vector().toArray()` - Convert PostgreSQL vectors back to JavaScript arrays
-- Full compatibility with OpenAI, Anthropic, and other embedding providers
+- **Algorithm options**: `'cosine'` (default), `'euclidean'`, `'dot'`
+- **AI-native**: Designed for OpenAI, Anthropic, and other embedding providers
 
 ## Examples
 
@@ -318,16 +318,16 @@ const results = await db
     pg.json("metadata").path("author").asText().as("author"),
     pg
       .vector("embedding")
-      .distance(searchEmbedding.data[0].embedding)
+      .similarity(searchEmbedding.data[0].embedding)
       .as("similarity"),
     pg.array("tags").length().as("tag_count"),
   ])
   .where(pg.array("tags").hasAnyOf(["ai", "machine-learning"]))
   .where(pg.json("metadata").path("published").equals(true))
   .where(
-    pg.vector("embedding").similarTo(searchEmbedding.data[0].embedding, 0.8)
+    pg.vector("embedding").similarity(searchEmbedding.data[0].embedding), '>', 0.8
   )
-  .orderBy("similarity")
+  .orderBy("similarity", "desc")
   .limit(20)
   .execute();
 ```

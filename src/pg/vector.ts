@@ -1,14 +1,17 @@
-import { sql, type Expression, type RawBuilder } from 'kysely'
+import { sql, type RawBuilder } from 'kysely'
 
 /**
  * PostgreSQL vector helper functions (pgvector extension)
  * 
  * Provides type-safe vector operations for AI/ML workloads:
- * - Distance functions (<->, <#>, <=>)
- * - Similarity operations
- * - Vector aggregations
- * - Dimension utilities
+ * - Semantic similarity search
+ * - Vector conversion utilities
  */
+
+/**
+ * Supported similarity algorithms
+ */
+export type SimilarityAlgorithm = 'cosine' | 'euclidean' | 'dot'
 
 /**
  * Vector operations builder
@@ -32,109 +35,28 @@ export interface VectorOperations {
   toArray(): RawBuilder<number[]>
 
   /**
-   * L2 distance operator (<->)
-   * Euclidean distance between vectors
+   * Calculate similarity between vectors
+   * Returns 0-1 where higher values indicate more similarity
+   * 
+   * @param targetVector Vector to compare against
+   * @param algorithm Similarity algorithm to use (default: 'cosine')
    * 
    * @example
    * ```ts
-   * .where(vector('embedding').distance(searchVector), '<', 0.5)
-   * .orderBy(vector('embedding').distance(searchVector))
+   * // Find similar documents (default cosine similarity)
+   * .where(pg.vector('embedding').similarity(searchVector), '>', 0.8)
+   * .orderBy(pg.vector('embedding').similarity(searchVector), 'desc')
+   * 
+   * // Use specific algorithm
+   * .where(pg.vector('embedding').similarity(searchVector, 'euclidean'), '>', 0.7)
    * ```
    * 
-   * Generates: `embedding <-> $1`
+   * Algorithm mappings:
+   * - 'cosine': 1 - (embedding <=> target) - Range: 0-1
+   * - 'euclidean': 1 / (1 + (embedding <-> target)) - Range: 0-1  
+   * - 'dot': (embedding <#> target + 1) / 2 - Range: 0-1
    */
-  distance(otherVector: number[]): RawBuilder<number>
-
-  /**
-   * L2 distance operator (<->) - alias for distance()
-   * 
-   * @example
-   * ```ts
-   * .where(vector('embedding').l2Distance(searchVector), '<', 0.3)
-   * ```
-   */
-  l2Distance(otherVector: number[]): RawBuilder<number>
-
-  /**
-   * Inner product operator (<#>)
-   * Higher values indicate more similarity
-   * 
-   * @example
-   * ```ts
-   * .where(vector('embedding').innerProduct(searchVector), '>', 0.7)
-   * .orderBy(vector('embedding').innerProduct(searchVector), 'desc')
-   * ```
-   * 
-   * Generates: `embedding <#> $1`
-   */
-  innerProduct(otherVector: number[]): RawBuilder<number>
-
-  /**
-   * Cosine distance operator (<=>)
-   * Range: 0 (identical) to 2 (opposite)
-   * 
-   * @example
-   * ```ts
-   * .where(vector('embedding').cosineDistance(searchVector), '<', 0.2)
-   * ```
-   * 
-   * Generates: `embedding <=> $1`
-   */
-  cosineDistance(otherVector: number[]): RawBuilder<number>
-
-  /**
-   * Vector similarity with threshold
-   * Convenience method for common similarity queries
-   * 
-   * @param otherVector Vector to compare against
-   * @param threshold Similarity threshold (0-1, where 1 is identical)
-   * @param method Distance method to use
-   * 
-   * @example
-   * ```ts
-   * .where(vector('embedding').similarTo(searchVector, 0.8))
-   * .where(vector('embedding').similarTo(searchVector, 0.9, 'cosine'))
-   * ```
-   */
-  similarTo(
-    otherVector: number[], 
-    threshold?: number, 
-    method?: 'l2' | 'cosine' | 'inner'
-  ): Expression<boolean>
-
-  /**
-   * Vector dimensions/length
-   * 
-   * @example
-   * ```ts
-   * .select([vector('embedding').dimensions().as('embedding_dims')])
-   * ```
-   * 
-   * Generates: `array_length(embedding, 1)`
-   */
-  dimensions(): RawBuilder<number>
-
-  /**
-   * Vector norm/magnitude
-   * 
-   * @example
-   * ```ts
-   * .select([vector('embedding').norm().as('magnitude')])
-   * ```
-   * 
-   * Generates: `vector_norm(embedding)`
-   */
-  norm(): RawBuilder<number>
-
-  /**
-   * Check if vectors have same dimensions
-   * 
-   * @example
-   * ```ts
-   * .where(vector('embedding').sameDimensions(vector('other_embedding')))
-   * ```
-   */
-  sameDimensions(otherVector: Expression<any> | string): Expression<boolean>
+  similarity(targetVector: number[], algorithm?: SimilarityAlgorithm): RawBuilder<number>
 }
 
 /**
@@ -177,7 +99,10 @@ export function embedding(embedding: number[]): RawBuilder<any> {
  * import { pg } from 'kysely-helpers'
  * 
  * // Semantic search query
- * const searchEmbedding = await generateEmbedding(userQuery)
+ * const searchEmbedding = await openai.embeddings.create({
+ *   model: "text-embedding-3-small",
+ *   input: userQuery
+ * })
  * 
  * const results = await db
  *   .selectFrom('documents')
@@ -185,10 +110,10 @@ export function embedding(embedding: number[]): RawBuilder<any> {
  *     'id',
  *     'title',
  *     'content',
- *     pg.vector('embedding').distance(searchEmbedding).as('similarity')
+ *     pg.vector('embedding').similarity(searchEmbedding.data[0].embedding).as('similarity')
  *   ])
- *   .where(pg.vector('embedding').similarTo(searchEmbedding, 0.8))
- *   .orderBy('similarity')
+ *   .where(pg.vector('embedding').similarity(searchEmbedding.data[0].embedding), '>', 0.8)
+ *   .orderBy('similarity', 'desc')
  *   .limit(10)
  *   .execute()
  * ```
@@ -201,56 +126,26 @@ export function vector(column: string): VectorOperations {
       return sql<number[]>`string_to_array(trim(${columnRef}::text, '[]'), ',')::float[]`
     },
 
-    distance: (otherVector: number[]) => {
-      const vectorStr = `[${otherVector.join(',')}]`
-      return sql<number>`${columnRef} <-> ${vectorStr}::vector`
-    },
-
-    l2Distance: (otherVector: number[]) => {
-      const vectorStr = `[${otherVector.join(',')}]`
-      return sql<number>`${columnRef} <-> ${vectorStr}::vector`
-    },
-
-    innerProduct: (otherVector: number[]) => {
-      const vectorStr = `[${otherVector.join(',')}]`
-      return sql<number>`${columnRef} <#> ${vectorStr}::vector`
-    },
-
-    cosineDistance: (otherVector: number[]) => {
-      const vectorStr = `[${otherVector.join(',')}]`
-      return sql<number>`${columnRef} <=> ${vectorStr}::vector`
-    },
-
-    similarTo: (
-      otherVector: number[], 
-      threshold: number = 0.5, 
-      method: 'l2' | 'cosine' | 'inner' = 'l2'
-    ) => {
-      const operators = {
-        l2: '<->',
-        cosine: '<=>',
-        inner: '<#>'
+    similarity: (targetVector: number[], algorithm: SimilarityAlgorithm = 'cosine') => {
+      const vectorStr = `[${targetVector.join(',')}]`
+      
+      switch (algorithm) {
+        case 'cosine':
+          // Convert cosine distance (0=identical, 2=opposite) to similarity (1=identical, 0=opposite)
+          return sql<number>`1 - (${columnRef} <=> ${vectorStr}::vector)`
+        
+        case 'euclidean':
+          // Convert euclidean distance to similarity using inverse formula
+          return sql<number>`1.0 / (1.0 + (${columnRef} <-> ${vectorStr}::vector))`
+        
+        case 'dot':
+          // Convert dot product to 0-1 range (assuming normalized vectors)
+          // Dot product range is typically [-1, 1], so we map to [0, 1]
+          return sql<number>`((${columnRef} <#> ${vectorStr}::vector) + 1.0) / 2.0`
+        
+        default:
+          throw new Error(`Unsupported similarity algorithm: ${algorithm}`)
       }
-      
-      const operator = operators[method]
-      const compareOp = method === 'inner' ? '>' : '<'
-      const thresholdValue = method === 'inner' ? threshold : (1 - threshold)
-      
-      const vectorStr = `[${otherVector.join(',')}]`
-      return sql<boolean>`${columnRef} ${sql.raw(operator)} ${vectorStr}::vector ${sql.raw(compareOp)} ${thresholdValue}`
-    },
-
-    dimensions: () => {
-      return sql<number>`vector_dims(${columnRef})`
-    },
-
-    norm: () => {
-      return sql<number>`vector_norm(${columnRef})`
-    },
-
-    sameDimensions: (otherVector: Expression<any> | string) => {
-      const otherRef = typeof otherVector === 'string' ? sql.ref(otherVector) : otherVector
-      return sql<boolean>`vector_dims(${columnRef}) = vector_dims(${otherRef})`
     }
   }
 }
