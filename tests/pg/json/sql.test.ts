@@ -52,129 +52,76 @@ describe('JSON SQL Generation', () => {
     dialect: new TestDialect()
   })
 
-  describe('get() SQL compilation', () => {
-    test('generates correct -> operator for field access', () => {
+
+  describe('Smart JSON vs Text detection', () => {
+    test('equals() with objects uses #> operator', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').get('theme').equals('dark'))
+        .where(pg.json('metadata').path(['user', 'profile']).equals({name: 'test'}))
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"preferences"->')
-      expect(compiled.sql).toContain('= \'"dark"\'')
-      expect(compiled.parameters).toEqual([])
-    })
-
-    test('generates correct field access with qualified columns', () => {
-      const query = db
-        .selectFrom('users')
-        .selectAll()
-        .where(pg.json('users.preferences').get('theme').equals('light'))
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"users"."preferences"->')
-      expect(compiled.sql).toContain('= \'"light"\'')
-    })
-
-    test('handles special characters in field names', () => {
-      const query = db
-        .selectFrom('users')
-        .selectAll()
-        .where(pg.json('preferences').get('user-theme').equals('dark'))
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"preferences"->')
-      expect(compiled.sql).toContain('\'"dark"\'')
-      expect(compiled.parameters).toEqual([])
-    })
-
-    test('asText() generates ->> operator', () => {
-      const query = db
-        .selectFrom('users')
-        .select([
-          'id',
-          pg.json('preferences').get('theme').asText().as('theme')
-        ])
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"preferences"->>')
-      expect(compiled.sql).toContain('as "theme"')
-    })
-  })
-
-  describe('getText() SQL compilation', () => {
-    test('generates correct ->> operator', () => {
-      const query = db
-        .selectFrom('users')
-        .selectAll()
-        .where(pg.json('preferences').getText('theme'), '=', 'dark')
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"preferences"->>')
-      expect(compiled.sql).toContain('\'theme\'')
+      expect(compiled.sql).toContain('"metadata"#>')
+      expect(compiled.sql).toContain('{user,profile}')
       expect(compiled.sql).toContain('= $1')
-      expect(compiled.parameters).toEqual(['dark'])
+      expect(compiled.parameters).toEqual(['{"name":"test"}'])
     })
 
-    test('works in SELECT clause', () => {
-      const query = db
-        .selectFrom('users')
-        .select([
-          'id',
-          pg.json('preferences').getText('theme').as('user_theme')
-        ])
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"preferences"->>')
-      expect(compiled.sql).toContain('as "user_theme"')
-    })
-  })
-
-  describe('path() SQL compilation', () => {
-    test('generates correct #> operator with string path', () => {
+    test('equals() with primitives uses #>> operator', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('metadata').path('user.profile').equals({name: 'test'}))
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"metadata"#>')
-      expect(compiled.sql).toContain('{user.profile}')
-      expect(compiled.sql).toContain("= '{\"name\":\"test\"}'")
-    })
-
-    test('generates correct #> operator with array path', () => {
-      const query = db
-        .selectFrom('users')
-        .selectAll()
-        .where(pg.json('metadata').path(['user', 'profile', 'settings']).equals({theme: 'dark'}))
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"metadata"#>')
-      expect(compiled.sql).toContain('{user,profile,settings}')
-      expect(compiled.sql).toContain("= '{\"theme\":\"dark\"}'")
-    })
-
-    test('asText() with path generates #>> operator', () => {
-      const query = db
-        .selectFrom('users')
-        .select([
-          'id',
-          pg.json('metadata').path(['user', 'name']).asText().as('user_name')
-        ])
+        .where(pg.json('metadata').path(['user', 'name']).equals('john'))
       
       const compiled = query.compile()
       
       expect(compiled.sql).toContain('"metadata"#>>')
       expect(compiled.sql).toContain('{user,name}')
+      expect(compiled.sql).toContain('= $1')
+      expect(compiled.parameters).toEqual(['john'])
+    })
+
+    test('boolean values use #>> operator', () => {
+      const query = db
+        .selectFrom('users')
+        .selectAll()
+        .where(pg.json('preferences').path('enabled').equals(true))
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"preferences"#>>')
+      expect(compiled.sql).toContain('{enabled}')
+      expect(compiled.sql).toContain('= $1')
+      expect(compiled.parameters).toEqual(['true'])
+    })
+
+    test('number values use #>> operator', () => {
+      const query = db
+        .selectFrom('users')
+        .selectAll()
+        .where(pg.json('metadata').path('count').equals(42))
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"metadata"#>>')
+      expect(compiled.sql).toContain('{count}')
+      expect(compiled.sql).toContain('= $1')
+      expect(compiled.parameters).toEqual(['42'])
+    })
+
+    test('null values use #>> operator', () => {
+      const query = db
+        .selectFrom('users')
+        .selectAll()
+        .where(pg.json('metadata').path('nullable').equals(null))
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"metadata"#>>')
+      expect(compiled.sql).toContain('{nullable}')
+      expect(compiled.sql).toContain('= $1')
+      expect(compiled.parameters).toEqual(['null'])
     })
 
     test('handles empty path array', () => {
@@ -190,33 +137,105 @@ describe('JSON SQL Generation', () => {
     })
   })
 
-  describe('pathText() SQL compilation', () => {
-    test('generates correct #>> operator', () => {
+  describe('Text mode operations', () => {
+    test('asText().equals() forces #>> operator', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('metadata').pathText(['user', 'email']), '=', 'test@example.com')
+        .where(pg.json('game').path('score').asText().equals('100'))
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"metadata"#>>')
-      expect(compiled.sql).toContain('{user,email}')
+      expect(compiled.sql).toContain('"game"#>>')
+      expect(compiled.sql).toContain('{score}')
       expect(compiled.sql).toContain('= $1')
-      expect(compiled.parameters).toEqual(['test@example.com'])
+      expect(compiled.parameters).toEqual(['100'])
     })
 
-    test('works with string path', () => {
+    test('asText() in SELECT clause', () => {
       const query = db
         .selectFrom('users')
         .select([
           'id',
-          pg.json('preferences').pathText('theme').as('theme_text')
+          pg.json('preferences').path('theme').asText().as('theme_text')
         ])
       
       const compiled = query.compile()
       
       expect(compiled.sql).toContain('"preferences"#>>')
       expect(compiled.sql).toContain('{theme}')
+      expect(compiled.sql).toContain('as "theme_text"')
+    })
+  })
+
+  describe('Comparison operations', () => {
+    test('greaterThan() generates #>> operator for text comparison', () => {
+      const query = db
+        .selectFrom('users')
+        .selectAll()
+        .where(pg.json('profile').path('age').greaterThan(18))
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"profile"#>>')
+      expect(compiled.sql).toContain('{age}')
+      expect(compiled.sql).toContain('> $1')
+      expect(compiled.parameters).toEqual(['18'])
+    })
+
+    test('lessThan() generates #>> operator for text comparison', () => {
+      const query = db
+        .selectFrom('users')
+        .selectAll()
+        .where(pg.json('profile').path('score').lessThan(100))
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"profile"#>>')
+      expect(compiled.sql).toContain('{score}')
+      expect(compiled.sql).toContain('< $1')
+      expect(compiled.parameters).toEqual(['100'])
+    })
+
+    test('exists() generates #> with IS NOT NULL', () => {
+      const query = db
+        .selectFrom('users')
+        .selectAll()
+        .where(pg.json('preferences').path('premium').exists())
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"preferences"#>')
+      expect(compiled.sql).toContain('{premium}')
+      expect(compiled.sql).toContain('IS NOT NULL')
+    })
+
+    test('exists() with array path', () => {
+      const query = db
+        .selectFrom('users')
+        .selectAll()
+        .where(pg.json('config').path(['user', 'settings']).exists())
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"config"#>')
+      expect(compiled.sql).toContain('{user,settings}')
+      expect(compiled.sql).toContain('IS NOT NULL')
+    })
+
+    test('contains() on path generates #> with @>', () => {
+      const query = db
+        .selectFrom('users')
+        .selectAll()
+        .where(pg.json('preferences').path('notifications').contains({email: true}))
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"preferences"#>')
+      expect(compiled.sql).toContain('{notifications}')
+      expect(compiled.sql).toContain('@>')
+      expect(compiled.sql).toContain('$1')
+      expect(compiled.parameters).toEqual(['{\"email\":true}'])
     })
   })
 
@@ -271,33 +290,6 @@ describe('JSON SQL Generation', () => {
     })
   })
 
-  describe('containedBy() SQL compilation', () => {
-    test('generates correct <@ operator', () => {
-      const query = db
-        .selectFrom('users')
-        .selectAll()
-        .where(pg.json('preferences').containedBy({theme: 'dark', language: 'en', notifications: true}))
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"preferences" <@')
-      expect(compiled.sql).toContain('theme')
-      expect(compiled.sql).toContain('language')
-      expect(compiled.sql).toContain('notifications')
-    })
-
-    test('handles empty objects', () => {
-      const query = db
-        .selectFrom('users')
-        .selectAll()
-        .where(pg.json('preferences').containedBy({}))
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"preferences" <@')
-      expect(compiled.sql).toContain('{}')
-    })
-  })
 
   describe('hasKey() SQL compilation', () => {
     test('generates correct ? operator', () => {
@@ -406,8 +398,8 @@ describe('JSON SQL Generation', () => {
         .select([
           'id',
           'email',
-          pg.json('preferences').getText('theme').as('theme'),
-          pg.json('metadata').pathText(['user', 'name']).as('display_name')
+          pg.json('preferences').path('theme').asText().as('theme'),
+          pg.json('metadata').path(['user', 'name']).asText().as('display_name')
         ])
         .where(pg.json('preferences').hasKey('theme'))
         .where(pg.json('preferences').contains({notifications: true}))
@@ -417,8 +409,8 @@ describe('JSON SQL Generation', () => {
       const compiled = query.compile()
       
       // Check that all operations are present
-      expect(compiled.sql).toContain('"preferences"->>')  // getText
-      expect(compiled.sql).toContain('"metadata"#>>')    // pathText
+      expect(compiled.sql).toContain('"preferences"#>>')  // path + asText
+      expect(compiled.sql).toContain('"metadata"#>>')    // path + asText
       expect(compiled.sql).toContain('"preferences" ?')   // hasKey
       expect(compiled.sql).toContain('"preferences" @>')  // contains
       expect(compiled.sql).toContain('"metadata"#>')      // path + equals
@@ -433,14 +425,14 @@ describe('JSON SQL Generation', () => {
         .selectFrom('users')
         .selectAll()
         .where('id', '>', 100)
-        .where(pg.json('preferences').get('theme').equals('dark'))
+        .where(pg.json('preferences').path('theme').equals('dark'))
         .where('email', 'like', '%@example.com')
         .where(pg.json('metadata').hasAllKeys(['verified', 'active']))
       
       const compiled = query.compile()
       
       expect(compiled.sql).toContain('"id" > $')
-      expect(compiled.sql).toContain('"preferences"->')
+      expect(compiled.sql).toContain('"preferences"#>>')
       expect(compiled.sql).toContain('"email" like $')
       expect(compiled.sql).toContain('"metadata" ?& ARRAY[')
       

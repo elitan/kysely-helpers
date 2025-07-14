@@ -16,30 +16,32 @@ describe('JSON API Tests', () => {
       const jsonOps = pg.json('preferences')
       
       // Verify all required methods exist
-      expect(typeof jsonOps.get).toBe('function')
-      expect(typeof jsonOps.getText).toBe('function')
       expect(typeof jsonOps.path).toBe('function')
-      expect(typeof jsonOps.pathText).toBe('function')
       expect(typeof jsonOps.contains).toBe('function')
-      expect(typeof jsonOps.containedBy).toBe('function')
       expect(typeof jsonOps.hasKey).toBe('function')
       expect(typeof jsonOps.hasAllKeys).toBe('function')
       expect(typeof jsonOps.hasAnyKey).toBe('function')
     })
 
-    test('get() returns JsonPathOperations interface', () => {
-      const pathOps = pg.json('preferences').get('theme')
+    test('path() returns JsonPathOperations interface', () => {
+      const pathOps = pg.json('preferences').path('theme')
       
       expect(typeof pathOps.contains).toBe('function')
       expect(typeof pathOps.equals).toBe('function')
+      expect(typeof pathOps.greaterThan).toBe('function')
+      expect(typeof pathOps.lessThan).toBe('function')
+      expect(typeof pathOps.exists).toBe('function')
       expect(typeof pathOps.asText).toBe('function')
     })
 
-    test('path() returns JsonPathOperations interface', () => {
+    test('path() with array returns JsonPathOperations interface', () => {
       const pathOps = pg.json('preferences').path(['user', 'theme'])
       
       expect(typeof pathOps.contains).toBe('function')
       expect(typeof pathOps.equals).toBe('function')
+      expect(typeof pathOps.greaterThan).toBe('function')
+      expect(typeof pathOps.lessThan).toBe('function')
+      expect(typeof pathOps.exists).toBe('function')
       expect(typeof pathOps.asText).toBe('function')
     })
 
@@ -51,18 +53,18 @@ describe('JSON API Tests', () => {
   })
 
   describe('Method Chaining and Fluent API', () => {
-    test('get() method chaining works', () => {
+    test('string path method chaining works', () => {
       expect(() => {
-        pg.json('preferences').get('theme').equals('dark')
-        pg.json('preferences').get('language').asText()
-        pg.json('preferences').get('settings').contains({notifications: true})
+        pg.json('preferences').path('theme').equals('dark')
+        pg.json('preferences').path('language').asText().equals('en')
+        pg.json('preferences').path('settings').contains({notifications: true})
       }).not.toThrow()
     })
 
-    test('path() method chaining works', () => {
+    test('array path method chaining works', () => {
       expect(() => {
         pg.json('metadata').path(['user', 'profile']).equals({name: 'test'})
-        pg.json('metadata').path('user.profile.name').asText()
+        pg.json('metadata').path(['user', 'profile', 'name']).asText().equals('john')
         pg.json('metadata').path(['notifications', 'email']).contains(true)
       }).not.toThrow()
     })
@@ -70,7 +72,16 @@ describe('JSON API Tests', () => {
     test('complex path operations work', () => {
       expect(() => {
         pg.json('preferences').path(['notifications', 'email', 'enabled']).equals(true)
-        pg.json('metadata').path('user.settings.advanced').contains({debug: true})
+        pg.json('metadata').path(['user', 'settings', 'advanced']).contains({debug: true})
+        pg.json('profile').path('age').greaterThan(18)
+        pg.json('config').path(['user', 'score']).lessThan(100)
+      }).not.toThrow()
+    })
+
+    test('existence checks work', () => {
+      expect(() => {
+        pg.json('preferences').path('theme').exists()
+        pg.json('metadata').path(['user', 'profile']).exists()
       }).not.toThrow()
     })
   })
@@ -114,12 +125,23 @@ describe('JSON API Tests', () => {
         pg.json('metadata').path(['nested', 'deep', 'path', 'here'])
       }).not.toThrow()
     })
+
+    test('comparison operations accept various value types', () => {
+      expect(() => {
+        pg.json('preferences').path('theme').equals('dark')
+        pg.json('preferences').path('count').equals(42)
+        pg.json('preferences').path('enabled').equals(true)
+        pg.json('preferences').path('config').equals(null)
+        pg.json('preferences').path('age').greaterThan(18)
+        pg.json('preferences').path('score').lessThan(100)
+      }).not.toThrow()
+    })
   })
 
   describe('Edge Cases and Error Handling', () => {
     test('handles empty string keys', () => {
       expect(() => pg.json('preferences').hasKey('')).not.toThrow()
-      expect(() => pg.json('preferences').get('')).not.toThrow()
+      expect(() => pg.json('preferences').path('')).not.toThrow()
     })
 
     test('handles empty arrays', () => {
@@ -156,6 +178,8 @@ describe('JSON API Tests', () => {
         pg.json('preferences').hasKey('key.with.dots')
         pg.json('preferences').hasKey('key with spaces')
         pg.json('preferences').hasKey('key@with#special$chars')
+        pg.json('preferences').path('key-with-dashes').equals('value')
+        pg.json('preferences').path(['key_with_underscores']).exists()
       }).not.toThrow()
     })
 
@@ -163,7 +187,7 @@ describe('JSON API Tests', () => {
       expect(() => {
         pg.json('preferences').hasKey('键名')
         pg.json('preferences').contains({emoji: '🚀', chinese: '中文'})
-        pg.json('preferences').get('français').equals('café')
+        pg.json('preferences').path('français').equals('café')
       }).not.toThrow()
     })
 
@@ -171,7 +195,7 @@ describe('JSON API Tests', () => {
       expect(() => {
         pg.json('preferences').contains(null)
         pg.json('preferences').contains({value: null})
-        pg.json('preferences').get('nullable').equals(null)
+        pg.json('preferences').path('nullable').equals(null)
       }).not.toThrow()
     })
   })
@@ -182,10 +206,11 @@ describe('JSON API Tests', () => {
       const expressions = [
         pg.json('preferences').contains({theme: 'dark'}),
         pg.json('preferences').hasKey('theme'),
-        pg.json('preferences').get('theme').equals('dark'),
-        pg.json('preferences').getText('theme'),
+        pg.json('preferences').path('theme').equals('dark'),
         pg.json('preferences').path(['user', 'theme']).asText(),
-        pg.json('preferences').pathText(['user', 'theme'])
+        pg.json('preferences').path('age').greaterThan(18),
+        pg.json('preferences').path('score').lessThan(100),
+        pg.json('preferences').path('premium').exists()
       ]
       
       // Verify all expressions are objects (Expression interface)
@@ -199,12 +224,14 @@ describe('JSON API Tests', () => {
       // These should all be Expression<boolean>
       const booleanExpressions = [
         pg.json('preferences').contains({theme: 'dark'}),
-        pg.json('preferences').containedBy({theme: 'dark', lang: 'en'}),
         pg.json('preferences').hasKey('theme'),
         pg.json('preferences').hasAllKeys(['theme', 'lang']),
         pg.json('preferences').hasAnyKey(['theme', 'style']),
-        pg.json('preferences').get('enabled').equals(true),
-        pg.json('preferences').path(['user', 'active']).contains(true)
+        pg.json('preferences').path('enabled').equals(true),
+        pg.json('preferences').path(['user', 'active']).contains(true),
+        pg.json('preferences').path('age').greaterThan(18),
+        pg.json('preferences').path('score').lessThan(100),
+        pg.json('preferences').path('premium').exists()
       ]
       
       booleanExpressions.forEach(expr => {
@@ -215,9 +242,8 @@ describe('JSON API Tests', () => {
     test('string expressions have correct type inference', () => {
       // These should all be Expression<string>
       const stringExpressions = [
-        pg.json('preferences').getText('theme'),
-        pg.json('preferences').pathText(['user', 'name']),
-        pg.json('preferences').get('theme').asText(),
+        pg.json('preferences').path('theme').asText(),
+        pg.json('preferences').path(['user', 'name']).asText(),
         pg.json('preferences').path(['user', 'email']).asText()
       ]
       
@@ -233,13 +259,15 @@ describe('JSON API Tests', () => {
         // Simulate building a complex query with multiple JSON conditions
         const conditions = [
           pg.json('preferences').hasKey('theme'),
-          pg.json('preferences').get('theme').equals('dark'),
+          pg.json('preferences').path('theme').equals('dark'),
           pg.json('metadata').contains({verified: true}),
-          pg.json('settings').path(['notifications', 'email']).equals(true)
+          pg.json('settings').path(['notifications', 'email']).equals(true),
+          pg.json('profile').path('age').greaterThan(18),
+          pg.json('account').path('premium').exists()
         ]
         
         // Should be able to create multiple conditions
-        expect(conditions).toHaveLength(4)
+        expect(conditions).toHaveLength(6)
       }).not.toThrow()
     })
 
@@ -247,15 +275,24 @@ describe('JSON API Tests', () => {
       expect(() => {
         const deepPath = ['user', 'profile', 'settings', 'notifications', 'email', 'frequency']
         pg.json('metadata').path(deepPath).equals('daily')
-        pg.json('metadata').pathText(deepPath)
+        pg.json('metadata').path(deepPath).asText()
+        pg.json('metadata').path(deepPath).exists()
       }).not.toThrow()
     })
 
     test('array-like JSON values can be queried', () => {
       expect(() => {
         pg.json('preferences').contains({tags: ['typescript', 'postgres']})
-        pg.json('preferences').get('tags').contains(['typescript'])
+        pg.json('preferences').path('tags').contains(['typescript'])
         pg.json('preferences').path(['user', 'roles']).contains(['admin'])
+      }).not.toThrow()
+    })
+
+    test('text mode operations work correctly', () => {
+      expect(() => {
+        pg.json('preferences').path('theme').asText().equals('dark')
+        pg.json('preferences').path(['user', 'name']).asText().equals('john')
+        pg.json('game').path('score').asText().equals('100')
       }).not.toThrow()
     })
   })

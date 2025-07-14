@@ -20,34 +20,94 @@ import { sql, type Expression, type RawBuilder } from 'kysely'
  */
 export interface JsonPathOperations {
   /**
-   * Get value at path as JSON
+   * JSON contains operation (@>)
+   * Uses #> operator for JSON comparison
    * 
    * @example
    * ```ts
-   * .where(json('metadata').path('$.user.preferences').contains({theme: 'dark'}))
+   * .where(pg.json('preferences').path('notifications').contains({email: true}))
    * ```
    */
   contains(value: any): Expression<boolean>
 
   /**
-   * Equals comparison
+   * Equals comparison with smart JSON vs text detection
+   * Uses #>> for primitives, #> for objects/arrays
    * 
    * @example
    * ```ts
-   * .where(json('metadata').path('$.theme').equals('dark'))
+   * .where(pg.json('preferences').path('theme').equals('dark'))
+   * .where(pg.json('config').path('user').equals({name: 'john'}))
    * ```
    */
   equals(value: any): Expression<boolean>
 
   /**
-   * Get as text
+   * Greater than comparison
+   * Uses #>> operator for text comparison
    * 
    * @example
    * ```ts
-   * .select([json('metadata').path('$.theme').asText().as('theme')])
+   * .where(pg.json('profile').path('age').greaterThan(18))
    * ```
    */
-  asText(): RawBuilder<string>
+  greaterThan(value: any): Expression<boolean>
+
+  /**
+   * Less than comparison
+   * Uses #>> operator for text comparison
+   * 
+   * @example
+   * ```ts
+   * .where(pg.json('profile').path('score').lessThan(100))
+   * ```
+   */
+  lessThan(value: any): Expression<boolean>
+
+  /**
+   * Path existence check
+   * Uses #> with IS NOT NULL
+   * 
+   * @example
+   * ```ts
+   * .where(pg.json('account').path('premium').exists())
+   * ```
+   */
+  exists(): Expression<boolean>
+
+  /**
+   * Force text mode for this operation
+   * Returns text operations that always use #>> operator
+   * Can be used in SELECT clauses with .as()
+   * 
+   * @example
+   * ```ts
+   * .where(pg.json('game').path('score').asText().equals('100'))
+   * .select([pg.json('preferences').path('theme').asText().as('theme')])
+   * ```
+   */
+  asText(): RawBuilder<string> & TextPathOperations
+}
+
+/**
+ * Text path operations (always uses #>> operator)
+ */
+export interface TextPathOperations {
+  /**
+   * Equals comparison in text mode
+   * Always uses #>> operator
+   */
+  equals(value: string): Expression<boolean>
+
+  /**
+   * Greater than comparison in text mode
+   */
+  greaterThan(value: string): Expression<boolean>
+
+  /**
+   * Less than comparison in text mode
+   */
+  lessThan(value: string): Expression<boolean>
 }
 
 /**
@@ -55,59 +115,26 @@ export interface JsonPathOperations {
  */
 export interface JsonOperations {
   /**
-   * Get JSON object field (->)
+   * Navigate to a JSON path with smart detection
+   * Accepts both string and array paths
    * 
    * @example
    * ```ts
-   * .where(json('metadata').get('theme').equals('dark'))
+   * // String path
+   * .where(pg.json('preferences').path('theme').equals('dark'))
+   * 
+   * // Array path for nested access
+   * .where(pg.json('config').path(['user', 'settings', 'language']).equals('en'))
    * ```
-   * 
-   * Generates: `metadata->'theme' = '"dark"'`
-   */
-  get(key: string): JsonPathOperations
-
-  /**
-   * Get JSON object field as text (->>)
-   * 
-   * @example
-   * ```ts
-   * .where(json('metadata').getText('theme'), '=', 'dark')
-   * ```
-   * 
-   * Generates: `metadata->>'theme' = 'dark'`
-   */
-  getText(key: string): RawBuilder<string>
-
-  /**
-   * Get JSON object at path (#>)
-   * 
-   * @example
-   * ```ts
-   * .where(json('metadata').path('{user,preferences,theme}').equals('dark'))
-   * ```
-   * 
-   * Generates: `metadata#>'{user,preferences,theme}' = '"dark"'`
    */
   path(path: string | string[]): JsonPathOperations
-
-  /**
-   * Get JSON object at path as text (#>>)
-   * 
-   * @example
-   * ```ts
-   * .where(json('metadata').pathText('{user,theme}'), '=', 'dark')
-   * ```
-   * 
-   * Generates: `metadata#>>'{user,theme}' = 'dark'`
-   */
-  pathText(path: string | string[]): RawBuilder<string>
 
   /**
    * JSON contains operation (@>)
    * 
    * @example
    * ```ts
-   * .where(json('metadata').contains({theme: 'dark'}))
+   * .where(pg.json('metadata').contains({theme: 'dark'}))
    * ```
    * 
    * Generates: `metadata @> '{"theme":"dark"}'`
@@ -115,21 +142,11 @@ export interface JsonOperations {
   contains(value: any): Expression<boolean>
 
   /**
-   * JSON contained by operation (<@)
-   * 
-   * @example
-   * ```ts
-   * .where(json('user_prefs').containedBy({theme: 'dark', lang: 'en'}))
-   * ```
-   */
-  containedBy(value: any): Expression<boolean>
-
-  /**
    * JSON key exists (?)
    * 
    * @example
    * ```ts
-   * .where(json('metadata').hasKey('theme'))
+   * .where(pg.json('metadata').hasKey('theme'))
    * ```
    * 
    * Generates: `metadata ? 'theme'`
@@ -141,7 +158,7 @@ export interface JsonOperations {
    * 
    * @example
    * ```ts
-   * .where(json('metadata').hasAllKeys(['theme', 'language']))
+   * .where(pg.json('metadata').hasAllKeys(['theme', 'language']))
    * ```
    * 
    * Generates: `metadata ?& array['theme','language']`
@@ -153,7 +170,7 @@ export interface JsonOperations {
    * 
    * @example
    * ```ts
-   * .where(json('metadata').hasAnyKey(['theme', 'style']))
+   * .where(pg.json('metadata').hasAnyKey(['theme', 'style']))
    * ```
    * 
    * Generates: `metadata ?| array['theme','style']`
@@ -179,48 +196,83 @@ export interface JsonOperations {
  *   .execute()
  * ```
  */
+/**
+ * Helper function to determine if a value should use JSON mode (#>) or text mode (#>>)
+ */
+function isComplexValue(value: any): boolean {
+  return value !== null && 
+         (typeof value === 'object' || Array.isArray(value))
+}
+
+/**
+ * Helper function to serialize value for JSON operations
+ */
+function serializeJsonValue(value: any): string {
+  return JSON.stringify(value).replace(/'/g, "''")
+}
+
+/**
+ * Helper function to serialize value for text operations
+ */
+function serializeTextValue(value: any): string {
+  if (value === null) return 'null'
+  if (typeof value === 'boolean') return value.toString()
+  if (typeof value === 'number') return value.toString()
+  if (typeof value === 'object') return JSON.stringify(value)
+  return value.toString()
+}
+
 export function json(column: string): JsonOperations {
   const columnRef = sql.ref(column)
 
   return {
-    get: (key: string) => {
-      const quotedKey = sql.raw(`'${key.replace(/'/g, "''")}'`)
-      const pathRef = sql`${columnRef}->${quotedKey}`
-      return {
-        contains: (value: any) => sql<boolean>`${pathRef} @> ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`,
-        equals: (value: any) => sql<boolean>`${pathRef} = ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`,
-        asText: () => sql<string>`${columnRef}->>${quotedKey}`
-      }
-    },
-
-    getText: (key: string) => {
-      const quotedKey = sql.raw(`'${key.replace(/'/g, "''")}'`)
-      return sql<string>`${columnRef}->>${quotedKey}`
-    },
-
     path: (path: string | string[]) => {
       const pathArray = Array.isArray(path) ? path : [path]
       const pathString = `'{${pathArray.join(',')}}'`
-      const pathRef = sql`${columnRef}#>${sql.raw(pathString)}`
+      const jsonPathRef = sql`${columnRef}#>${sql.raw(pathString)}`
+      const textPathRef = sql`${columnRef}#>>${sql.raw(pathString)}`
+      
       return {
-        contains: (value: any) => sql<boolean>`${pathRef} @> ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`,
-        equals: (value: any) => sql<boolean>`${pathRef} = ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`,
-        asText: () => sql<string>`${columnRef}#>>${sql.raw(pathString)}`
+        contains: (value: any) => {
+          return sql<boolean>`${jsonPathRef} @> ${serializeJsonValue(value)}`
+        },
+
+        equals: (value: any) => {
+          if (isComplexValue(value)) {
+            // Use JSON mode for objects and arrays
+            return sql<boolean>`${jsonPathRef} = ${serializeJsonValue(value)}`
+          } else {
+            // Use text mode for primitives  
+            return sql<boolean>`${textPathRef} = ${serializeTextValue(value)}`
+          }
+        },
+
+        greaterThan: (value: any) => {
+          return sql<boolean>`${textPathRef} > ${serializeTextValue(value)}`
+        },
+
+        lessThan: (value: any) => {
+          return sql<boolean>`${textPathRef} < ${serializeTextValue(value)}`
+        },
+
+        exists: () => {
+          return sql<boolean>`${jsonPathRef} IS NOT NULL`
+        },
+
+        asText: () => {
+          const textOps = {
+            equals: (value: string) => sql<boolean>`${textPathRef} = ${value}`,
+            greaterThan: (value: string) => sql<boolean>`${textPathRef} > ${value}`,
+            lessThan: (value: string) => sql<boolean>`${textPathRef} < ${value}`
+          }
+          // Return textPathRef with additional methods for when used in SELECT
+          return Object.assign(textPathRef, textOps)
+        }
       }
     },
 
-    pathText: (path: string | string[]) => {
-      const pathArray = Array.isArray(path) ? path : [path]
-      const pathString = `'{${pathArray.join(',')}}'`
-      return sql<string>`${columnRef}#>>${sql.raw(pathString)}`
-    },
-
     contains: (value: any) => {
-      return sql<boolean>`${columnRef} @> ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`
-    },
-
-    containedBy: (value: any) => {
-      return sql<boolean>`${columnRef} <@ ${sql.raw(`'${JSON.stringify(value).replace(/'/g, "''")}'`)}`
+      return sql<boolean>`${columnRef} @> ${sql.raw(`'${serializeJsonValue(value)}'`)}`
     },
 
     hasKey: (key: string) => {
