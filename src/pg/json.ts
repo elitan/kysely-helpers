@@ -113,9 +113,66 @@ export interface TextPathOperations {
 }
 
 /**
+ * JSON update operations for use in UPDATE SET clauses
+ */
+export interface JsonUpdateOperations {
+  /**
+   * Set a value at a JSON path using jsonb_set()
+   * 
+   * @example
+   * ```ts
+   * .set({ metadata: pg.json('metadata').set('theme', 'dark') })
+   * .set({ metadata: pg.json('metadata').set(['user', 'lang'], 'es') })
+   * ```
+   * 
+   * Generates: `jsonb_set(metadata, '{path}', '"value"')`
+   */
+  set(path: string | string[], value: any): RawBuilder<any>
+
+  /**
+   * Increment a numeric value at a JSON path
+   * Use positive numbers to increment, negative to decrement
+   * 
+   * @example
+   * ```ts
+   * .set({ stats: pg.json('stats').increment('points', 10) })
+   * .set({ lives: pg.json('lives').increment('remaining', -1) })
+   * ```
+   * 
+   * Generates: `jsonb_set(metadata, '{path}', ((metadata#>>'{path}')::numeric + value)::text::jsonb)`
+   */
+  increment(path: string | string[], value: number): RawBuilder<any>
+
+  /**
+   * Remove a key or path from JSON using the - operator
+   * 
+   * @example
+   * ```ts
+   * .set({ metadata: pg.json('metadata').remove('temp_flag') })
+   * .set({ metadata: pg.json('metadata').remove(['cache', 'expired']) })
+   * ```
+   * 
+   * Generates: `metadata - 'key'` or `metadata #- '{path}'`
+   */
+  remove(path: string | string[]): RawBuilder<any>
+
+  /**
+   * Append a value to a JSON array using the || operator
+   * 
+   * @example
+   * ```ts
+   * .set({ tags: pg.json('tags').push('new-tag') })
+   * ```
+   * 
+   * Generates: `tags || '"new-tag"'::jsonb`
+   */
+  push(value: any): RawBuilder<any>
+}
+
+/**
  * JSON operations builder
  */
-export interface JsonOperations {
+export interface JsonOperations extends JsonUpdateOperations {
   /**
    * Navigate to a JSON path with smart detection
    * Accepts both string and array paths
@@ -233,6 +290,40 @@ export function json(column: string): JsonOperations {
   const columnRef = sql.ref(column)
 
   return {
+    // Update operations
+    set: (path: string | string[], value: any) => {
+      const pathArray = Array.isArray(path) ? path : [path]
+      const pathString = `'{${pathArray.join(',')}}'`
+      const serializedValue = serializeJsonValue(value)
+      return sql`jsonb_set(${columnRef}, ${sql.raw(pathString)}, ${sql.raw(`'${serializedValue}'`)})`
+    },
+
+    increment: (path: string | string[], value: number) => {
+      const pathArray = Array.isArray(path) ? path : [path]
+      const pathString = `'{${pathArray.join(',')}}'`
+      return sql`jsonb_set(${columnRef}, ${sql.raw(pathString)}, ((${columnRef}#>>${sql.raw(pathString)})::numeric + ${value})::text::jsonb)`
+    },
+
+    remove: (path: string | string[]) => {
+      if (Array.isArray(path)) {
+        if (path.length === 1) {
+          // Single key removal: metadata - 'key'
+          return sql`${columnRef} - ${path[0]}`
+        } else {
+          // Deep path removal: metadata #- '{path,to,key}'
+          const pathString = `'{${path.join(',')}}'`
+          return sql`${columnRef} #- ${sql.raw(pathString)}`
+        }
+      } else {
+        // Single key removal: metadata - 'key'
+        return sql`${columnRef} - ${path}`
+      }
+    },
+
+    push: (value: any) => {
+      const serializedValue = serializeJsonValue(value)
+      return sql`${columnRef} || ${sql.raw(`'${serializedValue}'`)}::jsonb`
+    },
     path: <T = JsonValue>(path: string | string[]) => {
       const pathArray = Array.isArray(path) ? path : [path]
       const pathString = `'{${pathArray.join(',')}}'`

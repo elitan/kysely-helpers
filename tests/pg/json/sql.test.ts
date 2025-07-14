@@ -634,4 +634,279 @@ describe('JSON SQL Generation', () => {
       expect(compiled.sql).toContain('false')
     })
   })
+
+  describe('JSON Update Operations', () => {
+    describe('set() operation', () => {
+      test('set() with simple key generates jsonb_set', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').set('theme', 'dark')
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('jsonb_set("metadata", \'{theme}\', \'"dark"\')')
+        expect(compiled.parameters).toEqual([1])
+      })
+
+      test('set() with array path generates jsonb_set', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').set(['user', 'preferences', 'lang'], 'es')
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('jsonb_set("metadata", \'{user,preferences,lang}\', \'"es"\')')
+        expect(compiled.parameters).toEqual([1])
+      })
+
+      test('set() with object value serializes properly', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').set('config', { enabled: true, count: 42 })
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('jsonb_set("metadata", \'{config}\', \'{"enabled":true,"count":42}\')')
+        expect(compiled.parameters).toEqual([1])
+      })
+
+      test('set() with null value', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').set('nullable', null)
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('jsonb_set("metadata", \'{nullable}\', \'null\')')
+        expect(compiled.parameters).toEqual([1])
+      })
+    })
+
+    describe('increment() operation', () => {
+      test('increment() with positive value', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            stats: pg.json('stats').increment('points', 10)
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('jsonb_set("stats", \'{points}\', (("stats"#>>\'{points}\')::numeric + $1)::text::jsonb)')
+        expect(compiled.parameters).toEqual([10, 1])
+      })
+
+      test('increment() with negative value (decrement)', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            lives: pg.json('lives').increment('remaining', -1)
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('jsonb_set("lives", \'{remaining}\', (("lives"#>>\'{remaining}\')::numeric + $1)::text::jsonb)')
+        expect(compiled.parameters).toEqual([-1, 1])
+      })
+
+      test('increment() with array path', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').increment(['user', 'score'], 50)
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('jsonb_set("metadata", \'{user,score}\', (("metadata"#>>\'{user,score}\')::numeric + $1)::text::jsonb)')
+        expect(compiled.parameters).toEqual([50, 1])
+      })
+    })
+
+    describe('remove() operation', () => {
+      test('remove() with single key uses - operator', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').remove('temp_flag')
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('"metadata" - $1')
+        expect(compiled.parameters).toEqual(['temp_flag', 1])
+      })
+
+      test('remove() with single-item array uses - operator', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').remove(['temp_flag'])
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('"metadata" - $1')
+        expect(compiled.parameters).toEqual(['temp_flag', 1])
+      })
+
+      test('remove() with deep path uses #- operator', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').remove(['cache', 'expired_data'])
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('"metadata" #- \'{cache,expired_data}\'')
+        expect(compiled.parameters).toEqual([1])
+      })
+    })
+
+    describe('push() operation', () => {
+      test('push() with string value', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            tags: pg.json('tags').push('new-tag')
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('"tags" || \'"new-tag"\'::jsonb')
+        expect(compiled.parameters).toEqual([1])
+      })
+
+      test('push() with object value', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            history: pg.json('history').push({ action: 'login', timestamp: '2024-01-01' })
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('"history" || \'{"action":"login","timestamp":"2024-01-01"}\'::jsonb')
+        expect(compiled.parameters).toEqual([1])
+      })
+
+      test('push() with array value', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            items: pg.json('items').push(['item1', 'item2'])
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('"items" || \'["item1","item2"]\'::jsonb')
+        expect(compiled.parameters).toEqual([1])
+      })
+    })
+
+    describe('Multiple update operations', () => {
+      test('multiple JSON update operations in same query', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').set('updated_at', new Date('2024-01-01')),
+            stats: pg.json('stats').increment('login_count', 1),
+            settings: pg.json('settings').remove('temp_data'),
+            tags: pg.json('tags').push('active')
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('jsonb_set("metadata"')
+        expect(compiled.sql).toContain('jsonb_set("stats"')
+        expect(compiled.sql).toContain('"settings" -')
+        expect(compiled.sql).toContain('"tags" ||')
+        expect(compiled.parameters).toContain(1)
+      })
+
+      test('mixing JSON updates with regular column updates', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            email: 'newemail@example.com',
+            metadata: pg.json('metadata').set('last_login', '2024-01-01'),
+            stats: pg.json('stats').increment('points', 100)
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('"email" = $1')
+        expect(compiled.sql).toContain('jsonb_set("metadata"')
+        expect(compiled.sql).toContain('jsonb_set("stats"')
+        expect(compiled.parameters).toContain('newemail@example.com')
+        expect(compiled.parameters).toContain(1)
+      })
+    })
+
+    describe('Edge cases and error handling', () => {
+      test('set() with empty path array', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').set([], { root: 'value' })
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('jsonb_set("metadata", \'{}\', \'{"root":"value"}\')')
+      })
+
+      test('remove() with empty path array', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').remove([])
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('"metadata" #- \'{}\'')
+      })
+
+      test('special characters in JSON values are escaped', () => {
+        const query = db
+          .updateTable('users')
+          .set({
+            metadata: pg.json('metadata').set('message', 'Hello "world" with \'quotes\'')
+          })
+          .where('id', '=', 1)
+        
+        const compiled = query.compile()
+        
+        expect(compiled.sql).toContain('\\"world\\"')
+        expect(compiled.sql).toContain("'quotes'")
+      })
+    })
+  })
 })
