@@ -17,7 +17,6 @@ This project uses **Bun** as the primary runtime and build tool:
 bun run dev              # Watch mode development
 bun run build           # Complete build (CJS, ESM, types)
 bun run typecheck       # TypeScript type checking
-bun run lint            # ESLint code linting
 
 # Testing
 bun run test            # Unit tests only (tests/unit/)
@@ -77,8 +76,9 @@ Each test module contains:
 ### Vector Operations (pgvector)
 - `pg.embedding()` - Converts JavaScript arrays to PostgreSQL vector format for insertion
 - `pg.vector().toArray()` - Converts PostgreSQL vectors back to JavaScript arrays
-- Distance functions: `l2Distance()`, `cosineDistance()`, `innerProduct()`
-- Similarity helpers: `similarTo()`, `distance()`, `dimensions()`, `norm()`
+- `pg.vector().similarity()` - Calculate similarity between vectors with configurable algorithms
+- Supported algorithms: cosine (default), euclidean, dot product
+- Returns 0-1 similarity scores (higher = more similar)
 
 ### Testing Strategy
 - **Unit tests**: Fast feedback without database dependencies
@@ -98,7 +98,6 @@ Each test module contains:
 ### Development
 - Uses Bun for runtime, testing, and builds
 - TypeScript 5.0+ for development
-- ESLint for code quality
 
 ## Integration Requirements
 
