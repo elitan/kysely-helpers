@@ -37,10 +37,10 @@ const results = await db
     "id",
     "title",
     pg.array("tags").length().as("tag_count"),
-    pg.json("metadata").getText("author").as("author"),
+    pg.json("metadata").path("author").asText().as("author"),
   ])
   .where(pg.array("tags").includes("typescript")) // tags @> ARRAY['typescript']
-  .where(pg.json("metadata").get("published").equals(true)) // metadata->'published' = true
+  .where(pg.json("metadata").path("published").equals(true)) // metadata#>'{"published"}' = true
   .where(pg.vector("embedding").similarTo(searchVector)) // embedding <-> $1 < 0.5
   .orderBy("tag_count", "desc")
   .execute();
@@ -85,11 +85,11 @@ Query and filter JSON data stored in your database without parsing it in your ap
 ```typescript
 import { pg } from 'kysely-helpers'
 
-// Get theme value, keeps JSON type → metadata->'theme' = '"dark"'
-.where(pg.json('metadata').get('theme').equals('dark'))
+// Get theme value, keeps JSON type → metadata#>'{"theme"}' = '"dark"'
+.where(pg.json('metadata').path('theme').equals('dark'))
 
-// Get language as plain text → settings->>'language' = 'en'
-.where(pg.json('settings').getText('language'), '=', 'en')
+// Get language as plain text → settings#>>'{"language"}' = 'en'
+.where(pg.json('settings').path('language').asText().equals('en'))
 
 // Navigate to nested object → data#>'{user,preferences}' @> '{"notifications":true}'
 .where(pg.json('data').path(['user', 'preferences']).contains({notifications: true}))
@@ -174,7 +174,7 @@ const products = await db
     "description",
     "price",
     pg.array("tags").length().as("tag_count"),
-    pg.json("metadata").getText("difficulty").as("difficulty"),
+    pg.json("metadata").path("difficulty").asText().as("difficulty"),
   ])
   .where(pg.array("categories").includes("electronics"))
   .where(pg.json("specs").path(["display", "size"]).equals(15))
@@ -198,7 +198,7 @@ const results = await db
     "id",
     "title",
     "content",
-    pg.json("metadata").getText("author").as("author"),
+    pg.json("metadata").path("author").asText().as("author"),
     pg
       .vector("embedding")
       .distance(searchEmbedding.data[0].embedding)
@@ -206,7 +206,7 @@ const results = await db
     pg.array("tags").length().as("tag_count"),
   ])
   .where(pg.array("tags").overlaps(["ai", "machine-learning"]))
-  .where(pg.json("metadata").get("published").equals(true))
+  .where(pg.json("metadata").path("published").equals(true))
   .where(
     pg.vector("embedding").similarTo(searchEmbedding.data[0].embedding, 0.8)
   )
@@ -223,7 +223,7 @@ const userData = await db
   .select([
     "id",
     "email",
-    pg.json("preferences").getText("theme").as("theme"),
+    pg.json("preferences").path("theme").asText().as("theme"),
     pg
       .json("preferences")
       .path(["notifications", "email"])
