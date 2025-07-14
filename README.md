@@ -46,11 +46,7 @@ const results = await db
   .execute();
 ```
 
-## API Reference
-
-### PostgreSQL Helpers
-
-#### Array Operations
+### Array Operations
 
 Work with PostgreSQL arrays like you would with JavaScript arrays, but with database-level performance.
 
@@ -84,7 +80,7 @@ import { pg } from 'kysely-helpers'
 
 **Use cases:** Product filtering, tag-based search, permission checking, category management.
 
-#### Array Update Operations
+### Array Update Operations
 
 Modify PostgreSQL arrays directly in the database for efficient bulk operations and queue management.
 
@@ -130,7 +126,7 @@ await db.updateTable('history')
 
 **Use cases:** Tag management, queue/stack operations, bulk updates, task prioritization.
 
-#### JSON/JSONB Operations
+### JSON/JSONB Operations
 
 Query and filter JSON data stored in your database without parsing it in your application.
 
@@ -158,7 +154,7 @@ import { pg } from 'kysely-helpers'
 
 **Use cases:** User preferences, product configurations, dynamic schemas, API responses, settings storage.
 
-#### JSON/JSONB Update Operations
+### JSON/JSONB Update Operations
 
 Perform granular updates to JSON data directly in the database without reading and rewriting entire objects.
 
@@ -233,7 +229,7 @@ await db.updateTable('users')
 
 **Use cases:** User preference updates, analytics counters, configuration changes, cache management, real-time data updates.
 
-#### Vector Operations (pgvector)
+### Vector Operations (pgvector)
 
 Power AI applications with semantic search and similarity matching directly in your database.
 
