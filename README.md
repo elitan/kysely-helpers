@@ -106,6 +106,81 @@ import { pg } from 'kysely-helpers'
 
 **Use cases:** User preferences, product configurations, dynamic schemas, API responses, settings storage.
 
+#### JSON/JSONB Update Operations
+
+Perform granular updates to JSON data directly in the database without reading and rewriting entire objects.
+
+```typescript
+import { pg } from 'kysely-helpers'
+
+// Set value at path → jsonb_set(metadata, '{theme}', '"dark"')
+await db.updateTable('users')
+  .set({ metadata: pg.json('metadata').set('theme', 'dark') })
+  .where('id', '=', userId)
+  .execute()
+
+// Update nested values → jsonb_set(settings, '{user,preferences,lang}', '"es"')
+await db.updateTable('users')
+  .set({ 
+    settings: pg.json('settings').set(['user', 'preferences', 'lang'], 'es') 
+  })
+  .execute()
+
+// Increment counter → jsonb_set(stats, '{points}', ((stats#>>'{points}')::numeric + 10)::text::jsonb)
+await db.updateTable('analytics')
+  .set({ 
+    stats: pg.json('stats').increment('points', 10) 
+  })
+  .execute()
+
+// Decrement with negative value → increment('lives', -1)
+await db.updateTable('games')
+  .set({ 
+    player_data: pg.json('player_data').increment(['user', 'lives'], -1) 
+  })
+  .execute()
+
+// Remove key → metadata - 'temp_flag'
+await db.updateTable('cache')
+  .set({ 
+    metadata: pg.json('metadata').remove('temp_flag') 
+  })
+  .execute()
+
+// Remove nested path → data #- '{cache,expired}'
+await db.updateTable('sessions')
+  .set({ 
+    data: pg.json('data').remove(['cache', 'expired']) 
+  })
+  .execute()
+
+// Append to array → tags || '"premium"'::jsonb
+await db.updateTable('users')
+  .set({ 
+    tags: pg.json('tags').push('premium') 
+  })
+  .execute()
+
+// Multiple operations in one query
+await db.updateTable('users')
+  .set({
+    metadata: pg.json('metadata').set('last_login', new Date()),
+    stats: pg.json('stats').increment('login_count', 1),
+    cache: pg.json('cache').remove('temp_data'),
+    tags: pg.json('tags').push('active')
+  })
+  .where('id', '=', userId)
+  .execute()
+```
+
+**Key benefits:**
+- **Atomic updates**: No race conditions, updates happen at database level
+- **Efficient**: Avoids reading entire objects just to modify small parts
+- **Type-safe**: Full TypeScript support with path validation
+- **PostgreSQL-native**: Uses optimal `jsonb_set()`, `||`, and `-` operators
+
+**Use cases:** User preference updates, analytics counters, configuration changes, cache management, real-time data updates.
+
 #### Vector Operations (pgvector)
 
 Power AI applications with semantic search and similarity matching directly in your database.
