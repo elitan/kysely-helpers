@@ -625,4 +625,346 @@ describe('Array Database Integration', () => {
       }
     })
   })
+
+  describe('Array update operations database tests', () => {
+    test('append() single value works in database', async () => {
+      // Insert test product
+      const insertResult = await db
+        .insertInto('products')
+        .values({
+          name: 'Test Append Product',
+          description: 'Test product for append',
+          tags: ['initial', 'tag'],
+          categories: ['test'],
+          scores: [] as number[],
+          prices: [] as number[],
+          metadata: {},
+          settings: {},
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning(['id', 'tags'])
+        .executeTakeFirst()
+
+      expect(insertResult?.id).toBeDefined()
+
+      try {
+        // Append a single tag
+        await db
+          .updateTable('products')
+          .set({ tags: pg.array('tags').append('appended') })
+          .where('id', '=', insertResult!.id)
+          .execute()
+
+        // Verify the tag was appended
+        const result = await db
+          .selectFrom('products')
+          .select(['id', 'tags'])
+          .where('id', '=', insertResult!.id)
+          .executeTakeFirst()
+
+        expect(result?.tags).toEqual(['initial', 'tag', 'appended'])
+      } finally {
+        // Clean up
+        await db
+          .deleteFrom('products')
+          .where('id', '=', insertResult!.id)
+          .execute()
+      }
+    })
+
+    test('append() multiple values works in database', async () => {
+      // Insert test product
+      const insertResult = await db
+        .insertInto('products')
+        .values({
+          name: 'Test Append Multiple Product',
+          description: 'Test product for multiple append',
+          tags: ['initial'],
+          categories: ['test'],
+          scores: [] as number[],
+          prices: [] as number[],
+          metadata: {},
+          settings: {},
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning(['id', 'tags'])
+        .executeTakeFirst()
+
+      expect(insertResult?.id).toBeDefined()
+
+      try {
+        // Append multiple tags
+        await db
+          .updateTable('products')
+          .set({ tags: pg.array('tags').append(['tag1', 'tag2']) })
+          .where('id', '=', insertResult!.id)
+          .execute()
+
+        // Verify the tags were appended
+        const result = await db
+          .selectFrom('products')
+          .select(['id', 'tags'])
+          .where('id', '=', insertResult!.id)
+          .executeTakeFirst()
+
+        expect(result?.tags).toEqual(['initial', 'tag1', 'tag2'])
+      } finally {
+        // Clean up
+        await db
+          .deleteFrom('products')
+          .where('id', '=', insertResult!.id)
+          .execute()
+      }
+    })
+
+    test('prepend() single value works in database', async () => {
+      const insertResult = await db
+        .insertInto('products')
+        .values({
+          name: 'Test Prepend Product',
+          description: 'Test product for prepend',
+          tags: ['middle', 'end'],
+          categories: ['test'],
+          scores: [] as number[],
+          prices: [] as number[],
+          metadata: {},
+          settings: {},
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning(['id', 'tags'])
+        .executeTakeFirst()
+
+      expect(insertResult?.id).toBeDefined()
+
+      try {
+        // Prepend a single tag
+        await db
+          .updateTable('products')
+          .set({ tags: pg.array('tags').prepend('first') })
+          .where('id', '=', insertResult!.id)
+          .execute()
+
+        // Verify the tag was prepended
+        const result = await db
+          .selectFrom('products')
+          .select(['id', 'tags'])
+          .where('id', '=', insertResult!.id)
+          .executeTakeFirst()
+
+        expect(result?.tags).toEqual(['first', 'middle', 'end'])
+      } finally {
+        // Clean up
+        await db
+          .deleteFrom('products')
+          .where('id', '=', insertResult!.id)
+          .execute()
+      }
+    })
+
+    test('remove() works in database', async () => {
+      const insertResult = await db
+        .insertInto('products')
+        .values({
+          name: 'Test Remove Product',
+          description: 'Test product for remove',
+          tags: ['keep', 'remove', 'keep', 'remove'],
+          categories: ['test'],
+          scores: [] as number[],
+          prices: [] as number[],
+          metadata: {},
+          settings: {},
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning(['id', 'tags'])
+        .executeTakeFirst()
+
+      expect(insertResult?.id).toBeDefined()
+
+      try {
+        // Remove all occurrences of 'remove'
+        await db
+          .updateTable('products')
+          .set({ tags: pg.array('tags').remove('remove') })
+          .where('id', '=', insertResult!.id)
+          .execute()
+
+        // Verify the tags were removed
+        const result = await db
+          .selectFrom('products')
+          .select(['id', 'tags'])
+          .where('id', '=', insertResult!.id)
+          .executeTakeFirst()
+
+        expect(result?.tags).toEqual(['keep', 'keep'])
+      } finally {
+        // Clean up
+        await db
+          .deleteFrom('products')
+          .where('id', '=', insertResult!.id)
+          .execute()
+      }
+    })
+
+    test('removeFirst() works in database', async () => {
+      const insertResult = await db
+        .insertInto('products')
+        .values({
+          name: 'Test Remove First Product',
+          description: 'Test product for remove first',
+          tags: ['first', 'second', 'third'],
+          categories: ['test'],
+          scores: [] as number[],
+          prices: [] as number[],
+          metadata: {},
+          settings: {},
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning(['id', 'tags'])
+        .executeTakeFirst()
+
+      expect(insertResult?.id).toBeDefined()
+
+      try {
+        // Remove first element
+        await db
+          .updateTable('products')
+          .set({ tags: pg.array('tags').removeFirst() })
+          .where('id', '=', insertResult!.id)
+          .execute()
+
+        // Verify the first tag was removed
+        const result = await db
+          .selectFrom('products')
+          .select(['id', 'tags'])
+          .where('id', '=', insertResult!.id)
+          .executeTakeFirst()
+
+        expect(result?.tags).toEqual(['second', 'third'])
+      } finally {
+        // Clean up
+        await db
+          .deleteFrom('products')
+          .where('id', '=', insertResult!.id)
+          .execute()
+      }
+    })
+
+    test('removeLast() works in database', async () => {
+      const insertResult = await db
+        .insertInto('products')
+        .values({
+          name: 'Test Remove Last Product',
+          description: 'Test product for remove last',
+          tags: ['first', 'second', 'third'],
+          categories: ['test'],
+          scores: [] as number[],
+          prices: [] as number[],
+          metadata: {},
+          settings: {},
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning(['id', 'tags'])
+        .executeTakeFirst()
+
+      expect(insertResult?.id).toBeDefined()
+
+      try {
+        // Remove last element
+        await db
+          .updateTable('products')
+          .set({ tags: pg.array('tags').removeLast() })
+          .where('id', '=', insertResult!.id)
+          .execute()
+
+        // Verify the last tag was removed
+        const result = await db
+          .selectFrom('products')
+          .select(['id', 'tags'])
+          .where('id', '=', insertResult!.id)
+          .executeTakeFirst()
+
+        expect(result?.tags).toEqual(['first', 'second'])
+      } finally {
+        // Clean up
+        await db
+          .deleteFrom('products')
+          .where('id', '=', insertResult!.id)
+          .execute()
+      }
+    })
+  })
+
+  describe('Array select operations database tests', () => {
+    test('first() works in database', async () => {
+      const results = await db
+        .selectFrom('products')
+        .select([
+          'id',
+          'name',
+          'tags',
+          pg.array('tags').first().as('first_tag')
+        ])
+        .where(pg.array('tags').length(), '>', 0)
+        .execute()
+
+      expect(results.length).toBeGreaterThan(0)
+
+      for (const result of results) {
+        if (result.tags.length > 0) {
+          expect(result.first_tag).toBe(result.tags[0])
+        }
+      }
+    })
+
+    test('last() works in database', async () => {
+      const results = await db
+        .selectFrom('products')
+        .select([
+          'id',
+          'name', 
+          'tags',
+          pg.array('tags').last().as('last_tag')
+        ])
+        .where(pg.array('tags').length(), '>', 0)
+        .execute()
+
+      expect(results.length).toBeGreaterThan(0)
+
+      for (const result of results) {
+        if (result.tags.length > 0) {
+          expect(result.last_tag).toBe(result.tags[result.tags.length - 1])
+        }
+      }
+    })
+
+    test('first() and last() can be used in WHERE clauses', async () => {
+      // Find products where first tag is 'typescript'
+      const firstResults = await db
+        .selectFrom('products')
+        .select(['id', 'name', 'tags'])
+        .where(pg.array('tags').first(), '=', 'typescript')
+        .execute()
+
+      for (const result of firstResults) {
+        expect(result.tags[0]).toBe('typescript')
+      }
+
+      // Find products where last tag is 'tutorial'
+      const lastResults = await db
+        .selectFrom('products')
+        .select(['id', 'name', 'tags'])
+        .where(pg.array('tags').last(), '=', 'tutorial')
+        .execute()
+
+      for (const result of lastResults) {
+        expect(result.tags[result.tags.length - 1]).toBe('tutorial')
+      }
+    })
+  })
 })

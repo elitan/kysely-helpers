@@ -46,11 +46,7 @@ const results = await db
   .execute();
 ```
 
-## API Reference
-
-### PostgreSQL Helpers
-
-#### Array Operations
+### Array Operations
 
 Work with PostgreSQL arrays like you would with JavaScript arrays, but with database-level performance.
 
@@ -74,11 +70,63 @@ import { pg } from 'kysely-helpers'
 
 // Is status one of the valid options? → status = ANY(valid_statuses)
 .where('status', '=', pg.array('valid_statuses').any())
+
+// Get first element → tags[1]
+.select(pg.array('tags').first().as('first_tag'))
+
+// Get last element → tags[array_length(tags, 1)]
+.select(pg.array('tags').last().as('last_tag'))
 ```
 
 **Use cases:** Product filtering, tag-based search, permission checking, category management.
 
-#### JSON/JSONB Operations
+### Array Update Operations
+
+Modify PostgreSQL arrays directly in the database for efficient bulk operations and queue management.
+
+```typescript
+import { pg } from 'kysely-helpers'
+
+// Add single tag to end → array_append(tags, 'new-tag')
+await db.updateTable('products')
+  .set({ tags: pg.array('tags').append('new-tag') })
+  .where('id', '=', productId)
+  .execute()
+
+// Add multiple tags to end → tags || ARRAY['tag1', 'tag2']
+await db.updateTable('products')
+  .set({ tags: pg.array('tags').append(['tag1', 'tag2']) })
+  .execute()
+
+// Add to beginning (urgent item) → array_prepend('urgent', priorities)
+await db.updateTable('tasks')
+  .set({ priorities: pg.array('priorities').prepend('urgent') })
+  .execute()
+
+// Add multiple to beginning → ARRAY['urgent', 'high'] || priorities
+await db.updateTable('tasks')
+  .set({ priorities: pg.array('priorities').prepend(['urgent', 'high']) })
+  .execute()
+
+// Remove all occurrences → array_remove(tags, 'deprecated')
+await db.updateTable('products')
+  .set({ tags: pg.array('tags').remove('deprecated') })
+  .execute()
+
+// Queue operations - remove first (dequeue) → tags[2:array_length(tags, 1)]
+await db.updateTable('job_queue')
+  .set({ pending_jobs: pg.array('pending_jobs').removeFirst() })
+  .execute()
+
+// Stack operations - remove last (pop) → tags[1:array_length(tags, 1)-1]
+await db.updateTable('history')
+  .set({ actions: pg.array('actions').removeLast() })
+  .execute()
+```
+
+**Use cases:** Tag management, queue/stack operations, bulk updates, task prioritization.
+
+### JSON/JSONB Operations
 
 Query and filter JSON data stored in your database without parsing it in your application.
 
@@ -106,7 +154,7 @@ import { pg } from 'kysely-helpers'
 
 **Use cases:** User preferences, product configurations, dynamic schemas, API responses, settings storage.
 
-#### JSON/JSONB Update Operations
+### JSON/JSONB Update Operations
 
 Perform granular updates to JSON data directly in the database without reading and rewriting entire objects.
 
@@ -181,7 +229,7 @@ await db.updateTable('users')
 
 **Use cases:** User preference updates, analytics counters, configuration changes, cache management, real-time data updates.
 
-#### Vector Operations (pgvector)
+### Vector Operations (pgvector)
 
 Power AI applications with semantic search and similarity matching directly in your database.
 
