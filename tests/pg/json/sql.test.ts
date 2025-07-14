@@ -96,7 +96,7 @@ describe('JSON SQL Generation', () => {
       expect(compiled.parameters).toEqual(['true'])
     })
 
-    test('number values use #>> operator', () => {
+    test('number values use #> operator for numeric comparison', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
@@ -104,10 +104,10 @@ describe('JSON SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"metadata"#>>')
+      expect(compiled.sql).toContain('"metadata"#>')
       expect(compiled.sql).toContain('{count}')
       expect(compiled.sql).toContain('= $1')
-      expect(compiled.parameters).toEqual(['42'])
+      expect(compiled.parameters).toEqual([42])
     })
 
     test('null values use #>> operator', () => {
@@ -169,7 +169,7 @@ describe('JSON SQL Generation', () => {
   })
 
   describe('Comparison operations', () => {
-    test('greaterThan() generates #>> operator for text comparison', () => {
+    test('greaterThan() generates #> operator for numeric comparison', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
@@ -177,13 +177,13 @@ describe('JSON SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"profile"#>>')
+      expect(compiled.sql).toContain('"profile"#>')
       expect(compiled.sql).toContain('{age}')
       expect(compiled.sql).toContain('> $1')
-      expect(compiled.parameters).toEqual(['18'])
+      expect(compiled.parameters).toEqual([18])
     })
 
-    test('lessThan() generates #>> operator for text comparison', () => {
+    test('lessThan() generates #> operator for numeric comparison', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
@@ -191,10 +191,38 @@ describe('JSON SQL Generation', () => {
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"profile"#>>')
+      expect(compiled.sql).toContain('"profile"#>')
       expect(compiled.sql).toContain('{score}')
       expect(compiled.sql).toContain('< $1')
-      expect(compiled.parameters).toEqual(['100'])
+      expect(compiled.parameters).toEqual([100])
+    })
+
+    test('string comparisons use #>> operator for text comparison', () => {
+      const query = db
+        .selectFrom('users')
+        .selectAll()
+        .where(pg.json('profile').path('name').greaterThan('john'))
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"profile"#>>')
+      expect(compiled.sql).toContain('{name}')
+      expect(compiled.sql).toContain('> $1')
+      expect(compiled.parameters).toEqual(['john'])
+    })
+
+    test('string equals uses #>> operator', () => {
+      const query = db
+        .selectFrom('users')
+        .selectAll()
+        .where(pg.json('preferences').path('theme').equals('dark'))
+      
+      const compiled = query.compile()
+      
+      expect(compiled.sql).toContain('"preferences"#>>')
+      expect(compiled.sql).toContain('{theme}')
+      expect(compiled.sql).toContain('= $1')
+      expect(compiled.parameters).toEqual(['dark'])
     })
 
     test('exists() generates #> with IS NOT NULL', () => {

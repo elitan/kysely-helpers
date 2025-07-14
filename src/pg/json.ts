@@ -241,18 +241,33 @@ export function json(column: string): JsonOperations {
           if (isComplexValue(value)) {
             // Use JSON mode for objects and arrays
             return sql<boolean>`${jsonPathRef} = ${serializeJsonValue(value)}`
+          } else if (typeof value === 'number') {
+            // Use JSON mode for numbers to preserve numeric type
+            return sql<boolean>`${jsonPathRef} = ${value}`
           } else {
-            // Use text mode for primitives  
+            // Use text mode for strings, booleans, null
             return sql<boolean>`${textPathRef} = ${serializeTextValue(value)}`
           }
         },
 
         greaterThan: (value: any) => {
-          return sql<boolean>`${textPathRef} > ${serializeTextValue(value)}`
+          if (typeof value === 'number') {
+            // Use JSON mode for numeric comparisons
+            return sql<boolean>`${jsonPathRef} > ${value}`
+          } else {
+            // Use text mode for string comparisons
+            return sql<boolean>`${textPathRef} > ${value}`
+          }
         },
 
         lessThan: (value: any) => {
-          return sql<boolean>`${textPathRef} < ${serializeTextValue(value)}`
+          if (typeof value === 'number') {
+            // Use JSON mode for numeric comparisons
+            return sql<boolean>`${jsonPathRef} < ${value}`
+          } else {
+            // Use text mode for string comparisons
+            return sql<boolean>`${textPathRef} < ${value}`
+          }
         },
 
         exists: () => {
@@ -266,7 +281,9 @@ export function json(column: string): JsonOperations {
             lessThan: (value: string) => sql<boolean>`${textPathRef} < ${value}`
           }
           // Return textPathRef with additional methods for when used in SELECT
-          return Object.assign(textPathRef, textOps)
+          // Cast to RawBuilder<string> for proper typing
+          const typedTextPathRef = textPathRef as RawBuilder<string>
+          return Object.assign(typedTextPathRef, textOps)
         }
       }
     },
