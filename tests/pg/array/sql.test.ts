@@ -54,117 +54,90 @@ describe('Array SQL Generation', () => {
     dialect: new TestDialect()
   })
 
-  describe('includes() SQL compilation', () => {
-    test('generates correct PostgreSQL @> operator for single value', () => {
+  describe('hasAllOf() SQL compilation', () => {
+    test('generates correct PostgreSQL @> operator for multiple values', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').includes('typescript'))
+        .where(pg.array('tags').hasAllOf(['typescript', 'postgres']))
       
       const compiled = query.compile()
       
       expect(compiled.sql).toContain('"tags" @> ARRAY[')
       expect(compiled.sql).toContain('::text[]')
       expect(compiled.sql).toContain('$1')
-      expect(compiled.parameters).toEqual(['typescript'])
+      expect(compiled.sql).toContain('$2')
+      expect(compiled.parameters).toEqual(['typescript', 'postgres'])
     })
 
     test('generates correct SQL for qualified columns', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('products.tags').includes('featured'))
+        .where(pg.array('products.tags').hasAllOf(['featured', 'popular']))
       
       const compiled = query.compile()
       
       expect(compiled.sql).toContain('"products"."tags" @> ARRAY[')
-      expect(compiled.parameters).toEqual(['featured'])
+      expect(compiled.parameters).toEqual(['featured', 'popular'])
     })
 
     test('generates correct SQL for aliased columns', () => {
       const query = db
         .selectFrom('products as p')
         .selectAll()
-        .where(pg.array('p.tags').includes('featured'))
+        .where(pg.array('p.tags').hasAllOf(['featured', 'trending']))
       
       const compiled = query.compile()
       
       expect(compiled.sql).toContain('"p"."tags" @> ARRAY[')
-      expect(compiled.parameters).toEqual(['featured'])
+      expect(compiled.parameters).toEqual(['featured', 'trending'])
     })
 
     test('handles special characters in values', () => {
-      const specialValue = "tag's with 'quotes' and \"double\""
+      const specialValues = ["tag's with 'quotes'", "tag\"with\"double"]
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').includes(specialValue))
+        .where(pg.array('tags').hasAllOf(specialValues))
       
       const compiled = query.compile()
       
       expect(compiled.sql).toContain('"tags" @> ARRAY[')
-      expect(compiled.parameters).toEqual([specialValue])
+      expect(compiled.parameters).toEqual(specialValues)
     })
 
     test('generates correct type casting for number arrays', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array<number>('scores').includes(95))
+        .where(pg.array<number>('scores').hasAllOf([95, 100]))
       
       const compiled = query.compile()
       
       expect(compiled.sql).toContain('"scores" @> ARRAY[')
       expect(compiled.sql).toContain('::integer[]')
-      expect(compiled.parameters).toEqual([95])
+      expect(compiled.parameters).toEqual([95, 100])
     })
 
     test('generates correct type casting for boolean arrays', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array<boolean>('flags').includes(true))
+        .where(pg.array<boolean>('flags').hasAllOf([true, false]))
       
       const compiled = query.compile()
       
       expect(compiled.sql).toContain('"flags" @> ARRAY[')
       expect(compiled.sql).toContain('::boolean[]')
-      expect(compiled.parameters).toEqual([true])
-    })
-  })
-
-  describe('contains() SQL compilation', () => {
-    test('generates correct PostgreSQL @> operator for single value', () => {
-      const query = db
-        .selectFrom('products')
-        .selectAll()
-        .where(pg.array('tags').contains('typescript'))
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"tags" @> ARRAY[')
-      expect(compiled.parameters).toEqual(['typescript'])
-    })
-
-    test('generates correct PostgreSQL @> operator for multiple values', () => {
-      const query = db
-        .selectFrom('products')
-        .selectAll()
-        .where(pg.array('tags').contains(['typescript', 'javascript']))
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"tags" @> ARRAY[')
-      expect(compiled.sql).toContain('$1')
-      expect(compiled.sql).toContain('$2')
-      expect(compiled.parameters).toEqual(['typescript', 'javascript'])
+      expect(compiled.parameters).toEqual([true, false])
     })
 
     test('handles empty arrays with typed array literal', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').contains([]))
+        .where(pg.array('tags').hasAllOf([]))
       
       const compiled = query.compile()
       
@@ -176,7 +149,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').contains(['single']))
+        .where(pg.array('tags').hasAllOf(['single']))
       
       const compiled = query.compile()
       
@@ -189,7 +162,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').contains(largeArray))
+        .where(pg.array('tags').hasAllOf(largeArray))
       
       const compiled = query.compile()
       
@@ -201,12 +174,12 @@ describe('Array SQL Generation', () => {
     })
   })
 
-  describe('overlaps() SQL compilation', () => {
+  describe('hasAnyOf() SQL compilation', () => {
     test('generates correct PostgreSQL && operator', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('categories').overlaps(['tech', 'ai']))
+        .where(pg.array('categories').hasAnyOf(['tech', 'ai']))
       
       const compiled = query.compile()
       
@@ -220,7 +193,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('categories').overlaps([]))
+        .where(pg.array('categories').hasAnyOf([]))
       
       const compiled = query.compile()
       
@@ -232,7 +205,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('categories').overlaps(['single']))
+        .where(pg.array('categories').hasAnyOf(['single']))
       
       const compiled = query.compile()
       
@@ -241,34 +214,6 @@ describe('Array SQL Generation', () => {
     })
   })
 
-  describe('containedBy() SQL compilation', () => {
-    test('generates correct PostgreSQL <@ operator', () => {
-      const query = db
-        .selectFrom('products')
-        .selectAll()
-        .where(pg.array('tags').containedBy(['allowed', 'permitted', 'valid']))
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"tags" <@ ARRAY[')
-      expect(compiled.sql).toContain('$1')
-      expect(compiled.sql).toContain('$2')
-      expect(compiled.sql).toContain('$3')
-      expect(compiled.parameters).toEqual(['allowed', 'permitted', 'valid'])
-    })
-
-    test('handles empty arrays', () => {
-      const query = db
-        .selectFrom('products')
-        .selectAll()
-        .where(pg.array('tags').containedBy([]))
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"tags" <@ ARRAY[')
-      expect(compiled.parameters).toEqual([])
-    })
-  })
 
   describe('length() SQL compilation', () => {
     test('generates correct array_length function call in WHERE clause', () => {
@@ -321,40 +266,6 @@ describe('Array SQL Generation', () => {
     })
   })
 
-  describe('any() SQL compilation', () => {
-    test('generates correct ANY(...) function call', () => {
-      const query = db
-        .selectFrom('products')
-        .selectAll()
-        .where('name', '=', pg.array('categories').any())
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"name" = ANY("categories")')
-    })
-
-    test('works with qualified column names', () => {
-      const query = db
-        .selectFrom('users')
-        .selectAll()
-        .where('admin', '=', pg.array('users.roles').any())
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"admin" = ANY("users"."roles")')
-    })
-
-    test('can be used with different comparison operators', () => {
-      const query = db
-        .selectFrom('products')
-        .selectAll()
-        .where('status', '!=', pg.array('categories').any())
-      
-      const compiled = query.compile()
-      
-      expect(compiled.sql).toContain('"status" != ANY("categories")')
-    })
-  })
 
   describe('Complex queries with multiple array operations', () => {
     test('multiple array operations work together', () => {
@@ -365,8 +276,8 @@ describe('Array SQL Generation', () => {
           'name',
           pg.array('tags').length().as('tag_count')
         ])
-        .where(pg.array('tags').includes('featured'))
-        .where(pg.array('categories').overlaps(['electronics', 'gadgets']))
+        .where(pg.array('tags').hasAllOf(['featured']))
+        .where(pg.array('categories').hasAnyOf(['electronics', 'gadgets']))
         .where(pg.array('tags').length(), '>', 2)
         .orderBy('name')
         .limit(20)
@@ -374,8 +285,8 @@ describe('Array SQL Generation', () => {
       const compiled = query.compile()
       
       // Check that all operations are present
-      expect(compiled.sql).toContain('"tags" @> ARRAY[')  // includes
-      expect(compiled.sql).toContain('"categories" && ARRAY[')  // overlaps
+      expect(compiled.sql).toContain('"tags" @> ARRAY[')  // hasAllOf
+      expect(compiled.sql).toContain('"categories" && ARRAY[')  // hasAnyOf
       expect(compiled.sql).toContain('coalesce(array_length("tags", 1), 0) > $')  // length comparison
       expect(compiled.sql).toContain('coalesce(array_length("tags", 1), 0) as "tag_count"')  // length in select
       expect(compiled.sql).toContain('order by "name"')
@@ -394,17 +305,17 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').contains(['typescript', 'postgres']))
+        .where(pg.array('tags').hasAllOf(['typescript', 'postgres']))
         .where('id', '>', 100)
         .where('name', 'like', '%tutorial%')
-        .where(pg.array('categories').containedBy(['tech', 'education']))
+        .where(pg.array('categories').hasAnyOf(['tech', 'education']))
       
       const compiled = query.compile()
       
-      expect(compiled.sql).toContain('"tags" @> ARRAY[')  // contains
+      expect(compiled.sql).toContain('"tags" @> ARRAY[')  // hasAllOf
       expect(compiled.sql).toContain('"id" > $')  // regular condition
       expect(compiled.sql).toContain('"name" like $')  // regular condition
-      expect(compiled.sql).toContain('"categories" <@ ARRAY[')  // containedBy
+      expect(compiled.sql).toContain('"categories" && ARRAY[')  // hasAnyOf
       
       expect(compiled.parameters).toContain('typescript')
       expect(compiled.parameters).toContain('postgres')
@@ -418,13 +329,13 @@ describe('Array SQL Generation', () => {
       const subquery = db
         .selectFrom('users')
         .select('id')
-        .where(pg.array('roles').includes('admin'))
+        .where(pg.array('roles').hasAllOf(['admin']))
       
       const query = db
         .selectFrom('products')
         .selectAll()
         .where('created_by', 'in', subquery)
-        .where(pg.array('tags').overlaps(['internal', 'restricted']))
+        .where(pg.array('tags').hasAnyOf(['internal', 'restricted']))
       
       const compiled = query.compile()
       
@@ -441,7 +352,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').includes('test'))
+        .where(pg.array('tags').hasAllOf(['test']))
       
       const compiled = query.compile()
       
@@ -456,7 +367,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').overlaps(values))
+        .where(pg.array('tags').hasAnyOf(values))
       
       const compiled = query.compile()
       
@@ -471,7 +382,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').contains([]))
+        .where(pg.array('tags').hasAllOf([]))
       
       const compiled = query.compile()
       
@@ -657,7 +568,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').includes('test'))
+        .where(pg.array('tags').hasAllOf(['test']))
       
       const compiled = query.compile()
       
@@ -668,7 +579,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('products.tags').includes('test'))
+        .where(pg.array('products.tags').hasAllOf(['test']))
       
       const compiled = query.compile()
       
@@ -679,7 +590,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products as p')
         .selectAll()
-        .where(pg.array('p.tags').includes('test'))
+        .where(pg.array('p.tags').hasAllOf(['test']))
       
       const compiled = query.compile()
       
