@@ -6,12 +6,11 @@ describe('Array API', () => {
     test('pg.array() creates function with expected methods', () => {
       const arrayOps = pg.array('tags')
       
-      expect(typeof arrayOps.contains).toBe('function')
-      expect(typeof arrayOps.includes).toBe('function')
-      expect(typeof arrayOps.overlaps).toBe('function')
-      expect(typeof arrayOps.containedBy).toBe('function')
+      expect(typeof arrayOps.hasAllOf).toBe('function')
+      expect(typeof arrayOps.hasAnyOf).toBe('function')
       expect(typeof arrayOps.length).toBe('function')
-      expect(typeof arrayOps.any).toBe('function')
+      expect(typeof arrayOps.first).toBe('function')
+      expect(typeof arrayOps.last).toBe('function')
     })
 
     test('typed arrays maintain type information', () => {
@@ -20,13 +19,13 @@ describe('Array API', () => {
       const booleanArray = pg.array<boolean>('flags')
       
       // All should have the same interface
-      expect(typeof stringArray.includes).toBe('function')
-      expect(typeof numberArray.includes).toBe('function')
-      expect(typeof booleanArray.includes).toBe('function')
+      expect(typeof stringArray.hasAllOf).toBe('function')
+      expect(typeof numberArray.hasAllOf).toBe('function')
+      expect(typeof booleanArray.hasAllOf).toBe('function')
       
-      expect(typeof stringArray.contains).toBe('function')
-      expect(typeof numberArray.contains).toBe('function')
-      expect(typeof booleanArray.contains).toBe('function')
+      expect(typeof stringArray.hasAnyOf).toBe('function')
+      expect(typeof numberArray.hasAnyOf).toBe('function')
+      expect(typeof booleanArray.hasAnyOf).toBe('function')
     })
 
     test('works with different column name formats', () => {
@@ -39,43 +38,20 @@ describe('Array API', () => {
   })
 
   describe('Method calls and parameters', () => {
-    test('includes() accepts single values', () => {
+    test('hasAllOf() accepts arrays', () => {
       const arrayOps = pg.array('tags')
       
-      expect(() => arrayOps.includes('typescript')).not.toThrow()
-      expect(() => arrayOps.includes('')).not.toThrow()
-      expect(() => arrayOps.includes('tag with spaces')).not.toThrow()
+      expect(() => arrayOps.hasAllOf(['typescript', 'javascript'])).not.toThrow()
+      expect(() => arrayOps.hasAllOf([])).not.toThrow()
+      expect(() => arrayOps.hasAllOf(['single'])).not.toThrow()
     })
 
-    test('contains() accepts single values', () => {
-      const arrayOps = pg.array('tags')
-      
-      expect(() => arrayOps.contains('typescript')).not.toThrow()
-      expect(() => arrayOps.contains('')).not.toThrow()
-    })
-
-    test('contains() accepts arrays', () => {
-      const arrayOps = pg.array('tags')
-      
-      expect(() => arrayOps.contains(['typescript', 'javascript'])).not.toThrow()
-      expect(() => arrayOps.contains([])).not.toThrow()
-      expect(() => arrayOps.contains(['single'])).not.toThrow()
-    })
-
-    test('overlaps() accepts arrays', () => {
+    test('hasAnyOf() accepts arrays', () => {
       const arrayOps = pg.array('categories')
       
-      expect(() => arrayOps.overlaps(['tech', 'ai'])).not.toThrow()
-      expect(() => arrayOps.overlaps([])).not.toThrow()
-      expect(() => arrayOps.overlaps(['single'])).not.toThrow()
-    })
-
-    test('containedBy() accepts arrays', () => {
-      const arrayOps = pg.array('tags')
-      
-      expect(() => arrayOps.containedBy(['allowed', 'valid'])).not.toThrow()
-      expect(() => arrayOps.containedBy([])).not.toThrow()
-      expect(() => arrayOps.containedBy(['single'])).not.toThrow()
+      expect(() => arrayOps.hasAnyOf(['tech', 'ai'])).not.toThrow()
+      expect(() => arrayOps.hasAnyOf([])).not.toThrow()
+      expect(() => arrayOps.hasAnyOf(['single'])).not.toThrow()
     })
 
     test('length() requires no parameters', () => {
@@ -84,10 +60,16 @@ describe('Array API', () => {
       expect(() => arrayOps.length()).not.toThrow()
     })
 
-    test('any() requires no parameters', () => {
-      const arrayOps = pg.array('statuses')
+    test('first() requires no parameters', () => {
+      const arrayOps = pg.array('queue')
       
-      expect(() => arrayOps.any()).not.toThrow()
+      expect(() => arrayOps.first()).not.toThrow()
+    })
+
+    test('last() requires no parameters', () => {
+      const arrayOps = pg.array('stack')
+      
+      expect(() => arrayOps.last()).not.toThrow()
     })
   })
 
@@ -96,10 +78,8 @@ describe('Array API', () => {
       const stringOps = pg.array<string>('string_tags')
       
       expect(() => {
-        stringOps.includes('test')
-        stringOps.contains(['a', 'b', 'c'])
-        stringOps.overlaps(['x', 'y'])
-        stringOps.containedBy(['allowed'])
+        stringOps.hasAllOf(['a', 'b', 'c'])
+        stringOps.hasAnyOf(['x', 'y'])
       }).not.toThrow()
     })
 
@@ -107,10 +87,8 @@ describe('Array API', () => {
       const numberOps = pg.array<number>('scores')
       
       expect(() => {
-        numberOps.includes(42)
-        numberOps.contains([1, 2, 3])
-        numberOps.overlaps([10, 20])
-        numberOps.containedBy([1, 2, 3, 4, 5])
+        numberOps.hasAllOf([1, 2, 3])
+        numberOps.hasAnyOf([10, 20])
       }).not.toThrow()
     })
 
@@ -118,10 +96,8 @@ describe('Array API', () => {
       const booleanOps = pg.array<boolean>('flags')
       
       expect(() => {
-        booleanOps.includes(true)
-        booleanOps.contains([true, false])
-        booleanOps.overlaps([false])
-        booleanOps.containedBy([true, false])
+        booleanOps.hasAllOf([true, false])
+        booleanOps.hasAnyOf([false])
       }).not.toThrow()
     })
   })
@@ -131,9 +107,8 @@ describe('Array API', () => {
       const arrayOps = pg.array('tags')
       
       expect(() => {
-        arrayOps.contains([])
-        arrayOps.overlaps([])
-        arrayOps.containedBy([])
+        arrayOps.hasAllOf([])
+        arrayOps.hasAnyOf([])
       }).not.toThrow()
     })
 
@@ -141,9 +116,8 @@ describe('Array API', () => {
       const arrayOps = pg.array('tags')
       
       expect(() => {
-        arrayOps.contains(['single'])
-        arrayOps.overlaps(['single'])
-        arrayOps.containedBy(['single'])
+        arrayOps.hasAllOf(['single'])
+        arrayOps.hasAnyOf(['single'])
       }).not.toThrow()
     })
 
@@ -152,9 +126,8 @@ describe('Array API', () => {
       const largeArray = Array.from({length: 100}, (_, i) => `item${i}`)
       
       expect(() => {
-        arrayOps.contains(largeArray)
-        arrayOps.overlaps(largeArray)
-        arrayOps.containedBy(largeArray)
+        arrayOps.hasAllOf(largeArray)
+        arrayOps.hasAnyOf(largeArray)
       }).not.toThrow()
     })
 
@@ -162,10 +135,8 @@ describe('Array API', () => {
       const arrayOps = pg.array('tags')
       
       expect(() => {
-        arrayOps.includes("tag's with 'quotes'")
-        arrayOps.contains(['tag"with"quotes', 'tag\\with\\backslashes'])
-        arrayOps.overlaps(['unicode: 🚀', 'newline:\nchar'])
-        arrayOps.containedBy(['tab:\tchar', 'null:\0char'])
+        arrayOps.hasAllOf(['tag"with"quotes', 'tag\\with\\backslashes'])
+        arrayOps.hasAnyOf(['unicode: 🚀', 'newline:\nchar'])
       }).not.toThrow()
     })
 
@@ -173,10 +144,8 @@ describe('Array API', () => {
       const arrayOps = pg.array('tags')
       
       expect(() => {
-        arrayOps.includes('')
-        arrayOps.contains(['', 'non-empty'])
-        arrayOps.overlaps([''])
-        arrayOps.containedBy(['', 'allowed'])
+        arrayOps.hasAllOf(['', 'non-empty'])
+        arrayOps.hasAnyOf([''])
       }).not.toThrow()
     })
   })
@@ -186,36 +155,33 @@ describe('Array API', () => {
       const arrayOps = pg.array('tags')
       
       // These should return objects that look like Kysely expressions
-      const includesExpr = arrayOps.includes('test')
-      const containsExpr = arrayOps.contains(['a', 'b'])
-      const overlapsExpr = arrayOps.overlaps(['x', 'y'])
-      const containedByExpr = arrayOps.containedBy(['allowed'])
+      const hasAllOfExpr = arrayOps.hasAllOf(['a', 'b'])
+      const hasAnyOfExpr = arrayOps.hasAnyOf(['x', 'y'])
       const lengthExpr = arrayOps.length()
-      const anyExpr = arrayOps.any()
+      const firstExpr = arrayOps.first()
+      const lastExpr = arrayOps.last()
       
       // All should be objects (Kysely expressions)
-      expect(typeof includesExpr).toBe('object')
-      expect(typeof containsExpr).toBe('object')
-      expect(typeof overlapsExpr).toBe('object')
-      expect(typeof containedByExpr).toBe('object')
+      expect(typeof hasAllOfExpr).toBe('object')
+      expect(typeof hasAnyOfExpr).toBe('object')
       expect(typeof lengthExpr).toBe('object')
-      expect(typeof anyExpr).toBe('object')
+      expect(typeof firstExpr).toBe('object')
+      expect(typeof lastExpr).toBe('object')
       
       // Should not be null
-      expect(includesExpr).not.toBeNull()
-      expect(containsExpr).not.toBeNull()
-      expect(overlapsExpr).not.toBeNull()
-      expect(containedByExpr).not.toBeNull()
+      expect(hasAllOfExpr).not.toBeNull()
+      expect(hasAnyOfExpr).not.toBeNull()
       expect(lengthExpr).not.toBeNull()
-      expect(anyExpr).not.toBeNull()
+      expect(firstExpr).not.toBeNull()
+      expect(lastExpr).not.toBeNull()
     })
 
     test('multiple operations can be created from same array instance', () => {
       const arrayOps = pg.array('tags')
       
       expect(() => {
-        const expr1 = arrayOps.includes('first')
-        const expr2 = arrayOps.contains(['second', 'third'])
+        const expr1 = arrayOps.hasAllOf(['first'])
+        const expr2 = arrayOps.hasAnyOf(['second', 'third'])
         const expr3 = arrayOps.length()
         
         // All should be independent expressions
@@ -229,32 +195,32 @@ describe('Array API', () => {
   describe('Column reference variations', () => {
     test('handles simple column names', () => {
       expect(() => {
-        pg.array('tags').includes('test')
+        pg.array('tags').hasAllOf(['test'])
         pg.array('categories').length()
-        pg.array('scores').any()
+        pg.array('scores').first()
       }).not.toThrow()
     })
 
     test('handles qualified column names', () => {
       expect(() => {
-        pg.array('products.tags').includes('featured')
-        pg.array('user.preferences').contains(['dark_mode'])
-        pg.array('order.items').overlaps(['item1', 'item2', 'item3'])
+        pg.array('products.tags').hasAllOf(['featured'])
+        pg.array('user.preferences').hasAnyOf(['dark_mode'])
+        pg.array('order.items').hasAnyOf(['item1', 'item2', 'item3'])
       }).not.toThrow()
     })
 
     test('handles aliased table columns', () => {
       expect(() => {
-        pg.array('p.categories').overlaps(['electronics'])
-        pg.array('u.roles').containedBy(['admin', 'user'])
+        pg.array('p.categories').hasAnyOf(['electronics'])
+        pg.array('u.roles').hasAllOf(['admin', 'user'])
         pg.array('o.statuses').length()
       }).not.toThrow()
     })
 
     test('handles quoted identifiers', () => {
       expect(() => {
-        pg.array('"quoted_column"').includes('value')
-        pg.array('"table"."column"').contains(['items'])
+        pg.array('"quoted_column"').hasAllOf(['value'])
+        pg.array('"table"."column"').hasAnyOf(['items'])
         pg.array('"schema"."table"."column"').length()
       }).not.toThrow()
     })

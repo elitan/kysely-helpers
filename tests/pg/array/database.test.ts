@@ -91,12 +91,12 @@ afterAll(async () => {
 })
 
 describe('Array Database Integration', () => {
-  describe('includes() database operations', () => {
+  describe('hasAllOf() database operations', () => {
     test('finds products with specific tag', async () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').includes('typescript'))
+        .where(pg.array('tags').hasAllOf(['typescript']))
         .execute()
 
       expect(results).toBeDefined()
@@ -113,7 +113,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').includes('nonexistent_tag'))
+        .where(pg.array('tags').hasAllOf(['nonexistent_tag']))
         .execute()
 
       expect(results).toBeDefined()
@@ -125,7 +125,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'scores'])
-        .where(pg.array<number>('scores').includes(95))
+        .where(pg.array<number>('scores').hasAllOf([95]))
         .execute()
 
       expect(results).toBeDefined()
@@ -141,13 +141,13 @@ describe('Array Database Integration', () => {
       const upperResults = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').includes('TypeScript'))
+        .where(pg.array('tags').hasAllOf(['TypeScript']))
         .execute()
 
       const lowerResults = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').includes('typescript'))
+        .where(pg.array('tags').hasAllOf(['typescript']))
         .execute()
 
       // Should be different results due to case sensitivity
@@ -155,12 +155,12 @@ describe('Array Database Integration', () => {
     })
   })
 
-  describe('contains() database operations', () => {
+  describe('hasAllOf() database operations', () => {
     test('finds products containing multiple tags', async () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').contains(['tutorial', 'programming']))
+        .where(pg.array('tags').hasAllOf(['tutorial', 'programming']))
         .execute()
 
       expect(results).toBeDefined()
@@ -173,17 +173,17 @@ describe('Array Database Integration', () => {
       }
     })
 
-    test('handles single value same as includes()', async () => {
+    test('handles single value same as hasAllOf() with single element array', async () => {
       const containsResults = await db
         .selectFrom('products')
         .select('id')
-        .where(pg.array('tags').contains('typescript'))
+        .where(pg.array('tags').hasAllOf(['typescript']))
         .execute()
 
       const includesResults = await db
         .selectFrom('products')
         .select('id')
-        .where(pg.array('tags').includes('typescript'))
+        .where(pg.array('tags').hasAllOf(['typescript']))
         .execute()
 
       // Should return identical results
@@ -198,7 +198,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').contains(['rust', 'golang']))
+        .where(pg.array('tags').hasAllOf(['rust', 'golang']))
         .execute()
 
       expect(results).toBeDefined()
@@ -214,7 +214,7 @@ describe('Array Database Integration', () => {
       const emptyArrayResults = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').contains([]))
+        .where(pg.array('tags').hasAllOf([]))
         .execute()
 
       // Empty array should match all records (all arrays contain empty array)
@@ -222,12 +222,12 @@ describe('Array Database Integration', () => {
     })
   })
 
-  describe('overlaps() database operations', () => {
-    test('finds products with overlapping categories', async () => {
+  describe('hasAnyOf() database operations', () => {
+    test('finds products with any matching categories', async () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'categories'])
-        .where(pg.array('categories').overlaps(['education', 'electronics']))
+        .where(pg.array('categories').hasAnyOf(['education', 'electronics']))
         .execute()
 
       expect(results).toBeDefined()
@@ -241,11 +241,11 @@ describe('Array Database Integration', () => {
       }
     })
 
-    test('returns empty for non-overlapping arrays', async () => {
+    test('returns empty for non-matching arrays', async () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('categories').overlaps(['nonexistent1', 'nonexistent2']))
+        .where(pg.array('categories').hasAnyOf(['nonexistent1', 'nonexistent2']))
         .execute()
 
       expect(results.length).toBe(0)
@@ -255,7 +255,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'categories'])
-        .where(pg.array('categories').overlaps(['education']))
+        .where(pg.array('categories').hasAnyOf(['education']))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -266,46 +266,45 @@ describe('Array Database Integration', () => {
     })
   })
 
-  describe('containedBy() database operations', () => {
-    test('finds arrays contained by larger set', async () => {
+  describe('hasAnyOf() database operations (formerly containedBy)', () => {
+    test('finds arrays with any roles from allowed set', async () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'roles'])
-        .where(pg.array('roles').containedBy(['admin', 'user', 'moderator', 'guest']))
+        .where(pg.array('roles').hasAnyOf(['admin', 'user', 'moderator', 'guest']))
         .execute()
 
       expect(results).toBeDefined()
       
-      // Verify all user roles are within the allowed set
+      // Verify all users have at least one role from the allowed set
       for (const user of results) {
         const allowedRoles = ['admin', 'user', 'moderator', 'guest']
-        for (const role of user.roles) {
-          expect(allowedRoles).toContain(role)
-        }
+        const hasAllowedRole = user.roles.some(role => allowedRoles.includes(role))
+        expect(hasAllowedRole).toBe(true)
       }
     })
 
-    test('empty result when no arrays fit within constraint', async () => {
+    test('empty result when no arrays have any of the specified roles', async () => {
       const results = await db
         .selectFrom('users')
         .selectAll()
-        .where(pg.array('roles').containedBy(['guest']))
+        .where(pg.array('roles').hasAnyOf(['nonexistent_role']))
         .execute()
 
-      // Most users have more roles than just 'guest'
-      expect(results.length).toBeLessThan(4) // We have 4 users total
+      // No users should have 'nonexistent_role'
+      expect(results.length).toBe(0)
     })
 
-    test('single role constraint', async () => {
+    test('single role search', async () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'roles'])
-        .where(pg.array('roles').containedBy(['user']))
+        .where(pg.array('roles').hasAnyOf(['user']))
         .execute()
 
-      // Should find users who only have 'user' role
+      // Should find users who have 'user' role
       for (const user of results) {
-        expect(user.roles.every(role => role === 'user')).toBe(true)
+        expect(user.roles).toContain('user')
       }
     })
   })
@@ -430,37 +429,6 @@ describe('Array Database Integration', () => {
     })
   })
 
-  describe('any() database operations', () => {
-    test('finds records where value equals any array element', async () => {
-      const results = await db
-        .selectFrom('products')
-        .select(['id', 'name', 'categories'])
-        .where(sql.lit('education'), '=', pg.array('categories').any())
-        .execute()
-
-      expect(results).toBeDefined()
-      
-      for (const product of results) {
-        expect(product.categories).toContain('education')
-      }
-    })
-
-    test('works with NOT equals', async () => {
-      const results = await db
-        .selectFrom('products')
-        .select(['id', 'name', 'categories'])
-        .where(sql.lit('nonexistent'), '!=', pg.array('categories').any())
-        .execute()
-
-      // Should return all products since 'nonexistent' is not equal to any category
-      const allProducts = await db
-        .selectFrom('products')
-        .selectAll()
-        .execute()
-
-      expect(results.length).toBe(allProducts.length)
-    })
-  })
 
   describe('Complex array queries', () => {
     test('multiple array operations combined', async () => {
@@ -473,8 +441,8 @@ describe('Array Database Integration', () => {
           'categories',
           pg.array('tags').length().as('tag_count')
         ])
-        .where(pg.array('tags').includes('tutorial'))
-        .where(pg.array('categories').overlaps(['education']))
+        .where(pg.array('tags').hasAllOf(['tutorial']))
+        .where(pg.array('categories').hasAnyOf(['education']))
         .where(pg.array('tags').length(), '>=', 3)
         .orderBy('name')
         .execute()
@@ -493,7 +461,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').contains(['tutorial']))
+        .where(pg.array('tags').hasAllOf(['tutorial']))
         .where('id', '>', 1)
         .where('name', 'like', '%TypeScript%')
         .execute()
@@ -511,7 +479,7 @@ describe('Array Database Integration', () => {
       const educationProductIds = db
         .selectFrom('products')
         .select('id')
-        .where(pg.array('categories').includes('education'))
+        .where(pg.array('categories').hasAllOf(['education']))
 
       const results = await db
         .selectFrom('documents')
@@ -534,7 +502,7 @@ describe('Array Database Integration', () => {
           'documents.title',
           'documents.tags as document_tags'
         ])
-        .where(pg.array('products.tags').overlaps(['tutorial', 'programming']))
+        .where(pg.array('products.tags').hasAnyOf(['tutorial', 'programming']))
         .execute()
 
       expect(results).toBeDefined()
@@ -557,7 +525,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').overlaps(largeTagArray))
+        .where(pg.array('tags').hasAnyOf(largeTagArray))
         .execute()
       const endTime = Date.now()
 
@@ -591,7 +559,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').includes("tag's with apostrophe"))
+        .where(pg.array('tags').hasAllOf(["tag's with apostrophe"]))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -610,10 +578,10 @@ describe('Array Database Integration', () => {
     test('concurrent array operations', async () => {
       // Run multiple array queries concurrently
       const promises = [
-        db.selectFrom('products').selectAll().where(pg.array('tags').includes('typescript')).execute(),
-        db.selectFrom('products').selectAll().where(pg.array('categories').overlaps(['education'])).execute(),
-        db.selectFrom('users').selectAll().where(pg.array('roles').includes('user')).execute(),
-        db.selectFrom('documents').selectAll().where(pg.array('tags').contains(['postgresql'])).execute()
+        db.selectFrom('products').selectAll().where(pg.array('tags').hasAllOf(['typescript'])).execute(),
+        db.selectFrom('products').selectAll().where(pg.array('categories').hasAnyOf(['education'])).execute(),
+        db.selectFrom('users').selectAll().where(pg.array('roles').hasAllOf(['user'])).execute(),
+        db.selectFrom('documents').selectAll().where(pg.array('tags').hasAllOf(['postgresql'])).execute()
       ]
 
       const results = await Promise.all(promises)

@@ -83,55 +83,30 @@ export interface ArrayUpdateOperations<T> {
  */
 export interface ArrayOperations<T> extends ArrayUpdateOperations<T> {
   /**
-   * Array contains operation (@>)
-   * Checks if array contains all elements of another array
+   * Check if array contains ALL of the provided values
    * 
    * @example
    * ```ts
-   * .where(array('tags').contains('typescript'))
-   * .where(array('tags').contains(['typescript', 'postgres']))
+   * .where(array('tags').hasAllOf(['typescript', 'postgres']))
+   * .where(array('permissions').hasAllOf(['read', 'write']))
    * ```
    * 
-   * Generates: `tags @> ARRAY['typescript']` or `tags @> ARRAY['typescript', 'postgres']`
+   * Generates: `tags @> ARRAY['typescript', 'postgres']`
    */
-  contains(value: T | T[]): Expression<boolean>
+  hasAllOf(values: T[]): Expression<boolean>
 
   /**
-   * Array contains element operation (@>)  
-   * Alias for contains() with single element
+   * Check if array contains ANY of the provided values (intersection)
    * 
    * @example
    * ```ts
-   * .where(array('tags').includes('typescript'))
-   * ```
-   */
-  includes(value: T): Expression<boolean>
-
-  /**
-   * Array overlaps operation (&&)
-   * Checks if arrays have any elements in common
-   * 
-   * @example
-   * ```ts
-   * .where(array('tags').overlaps(['typescript', 'javascript']))
+   * .where(array('userRoles').hasAnyOf(['admin', 'moderator']))
+   * .where(array('categories').hasAnyOf(['tech', 'ai']))
    * ```
    * 
-   * Generates: `tags && ARRAY['typescript', 'javascript']`
+   * Generates: `userRoles && ARRAY['admin', 'moderator']`
    */
-  overlaps(values: T[]): Expression<boolean>
-
-  /**
-   * Array contained by operation (<@)
-   * Checks if array is contained by another array
-   * 
-   * @example
-   * ```ts
-   * .where(array('tags').containedBy(['typescript', 'javascript', 'python']))
-   * ```
-   * 
-   * Generates: `tags <@ ARRAY['typescript', 'javascript', 'python']`
-   */
-  containedBy(values: T[]): Expression<boolean>
+  hasAnyOf(values: T[]): Expression<boolean>
 
   /**
    * Array length function
@@ -141,21 +116,9 @@ export interface ArrayOperations<T> extends ArrayUpdateOperations<T> {
    * .where(array('tags').length(), '>', 3)
    * ```
    * 
-   * Generates: `array_length(tags, 1) > 3`
+   * Generates: `coalesce(array_length(tags, 1), 0) > 3`
    */
   length(): RawBuilder<number>
-
-  /**
-   * Array element equals any (= ANY)
-   * 
-   * @example
-   * ```ts
-   * .where('status', '=', array('allowed_statuses').any())
-   * ```
-   * 
-   * Generates: `status = ANY(allowed_statuses)`
-   */
-  any(): RawBuilder<T>
 
   /**
    * Get first element of array
@@ -253,22 +216,16 @@ export function array<T = string>(column: string): ArrayOperations<T> {
       return sql<T[]>`${columnRef}[1:array_length(${columnRef}, 1)-1]`
     },
 
-    contains: (value: T | T[]) => {
-      const arrayValue = Array.isArray(value) ? value : [value]
-      if (arrayValue.length === 0) {
+    hasAllOf: (values: T[]) => {
+      if (values.length === 0) {
         // Empty array - use text[] as default
         return sql<boolean>`${columnRef} @> ARRAY[]::text[]`
       }
-      const arrayType = getArrayType(arrayValue)
-      return sql<boolean>`${columnRef} @> ARRAY[${sql.join(arrayValue)}]::${sql.raw(arrayType)}`
+      const arrayType = getArrayType(values)
+      return sql<boolean>`${columnRef} @> ARRAY[${sql.join(values)}]::${sql.raw(arrayType)}`
     },
 
-    includes: (value: T) => {
-      const arrayType = getArrayType([value])
-      return sql<boolean>`${columnRef} @> ARRAY[${value}]::${sql.raw(arrayType)}`
-    },
-
-    overlaps: (values: T[]) => {
+    hasAnyOf: (values: T[]) => {
       if (values.length === 0) {
         return sql<boolean>`${columnRef} && ARRAY[]::text[]`
       }
@@ -276,20 +233,8 @@ export function array<T = string>(column: string): ArrayOperations<T> {
       return sql<boolean>`${columnRef} && ARRAY[${sql.join(values)}]::${sql.raw(arrayType)}`
     },
 
-    containedBy: (values: T[]) => {
-      if (values.length === 0) {
-        return sql<boolean>`${columnRef} <@ ARRAY[]::text[]`
-      }
-      const arrayType = getArrayType(values)
-      return sql<boolean>`${columnRef} <@ ARRAY[${sql.join(values)}]::${sql.raw(arrayType)}`
-    },
-
     length: () => {
       return sql<number>`coalesce(array_length(${columnRef}, 1), 0)`
-    },
-
-    any: () => {
-      return sql<T>`ANY(${columnRef})`
     },
 
     first: () => {

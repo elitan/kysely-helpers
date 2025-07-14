@@ -39,7 +39,7 @@ const results = await db
     pg.array("tags").length().as("tag_count"),
     pg.json("metadata").path("author").asText().as("author"),
   ])
-  .where(pg.array("tags").includes("typescript")) // tags @> ARRAY['typescript']
+  .where(pg.array("tags").hasAllOf(["typescript"])) // tags @> ARRAY['typescript']
   .where(pg.json("metadata").path("published").equals(true)) // metadata#>'{"published"}' = true
   .where(pg.vector("embedding").similarTo(searchVector)) // embedding <-> $1 < 0.5
   .orderBy("tag_count", "desc")
@@ -53,23 +53,17 @@ Work with PostgreSQL arrays like you would with JavaScript arrays, but with data
 ```typescript
 import { pg } from 'kysely-helpers'
 
-// Does tags array contain 'featured'? → tags @> ARRAY['featured']
-.where(pg.array('tags').includes('featured'))
+// Does tags array contain all of ['featured']? → tags @> ARRAY['featured']
+.where(pg.array('tags').hasAllOf(['featured']))
 
 // Does tags array contain both 'ai' AND 'ml'? → tags @> ARRAY['ai', 'ml']
-.where(pg.array('tags').contains(['ai', 'ml']))
+.where(pg.array('tags').hasAllOf(['ai', 'ml']))
 
 // Do categories share ANY values with ['tech', 'ai']? → categories && ARRAY['tech', 'ai']
-.where(pg.array('categories').overlaps(['tech', 'ai']))
-
-// Are all sizes within the allowed list? → sizes <@ ARRAY['S', 'M', 'L']
-.where(pg.array('sizes').containedBy(['S', 'M', 'L']))
+.where(pg.array('categories').hasAnyOf(['tech', 'ai']))
 
 // Does array have more than 5 items? → array_length(items, 1) > 5
 .where(pg.array('items').length(), '>', 5)
-
-// Is status one of the valid options? → status = ANY(valid_statuses)
-.where('status', '=', pg.array('valid_statuses').any())
 
 // Get first element → tags[1]
 .select(pg.array('tags').first().as('first_tag'))
@@ -299,10 +293,10 @@ const products = await db
     pg.array("tags").length().as("tag_count"),
     pg.json("metadata").path("difficulty").asText().as("difficulty"),
   ])
-  .where(pg.array("categories").includes("electronics"))
+  .where(pg.array("categories").hasAllOf(["electronics"]))
   .where(pg.json("specs").path(["display", "size"]).equals(15))
   .where(pg.json("availability").hasKey("in_stock"))
-  .where(pg.array("tags").overlaps(["featured", "bestseller"]))
+  .where(pg.array("tags").hasAnyOf(["featured", "bestseller"]))
   .orderBy("tag_count", "desc")
   .execute();
 ```
@@ -328,7 +322,7 @@ const results = await db
       .as("similarity"),
     pg.array("tags").length().as("tag_count"),
   ])
-  .where(pg.array("tags").overlaps(["ai", "machine-learning"]))
+  .where(pg.array("tags").hasAnyOf(["ai", "machine-learning"]))
   .where(pg.json("metadata").path("published").equals(true))
   .where(
     pg.vector("embedding").similarTo(searchEmbedding.data[0].embedding, 0.8)
@@ -352,7 +346,7 @@ const userData = await db
       .path(["notifications", "email"])
       .as("email_notifications"),
   ])
-  .where(pg.array("roles").includes("admin"))
+  .where(pg.array("roles").hasAllOf(["admin"]))
   .where(pg.json("preferences").hasKey("theme"))
   .where(pg.json("profile").contains({ verified: true, active: true }))
   .execute();
