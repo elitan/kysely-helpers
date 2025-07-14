@@ -93,9 +93,7 @@ afterAll(async () => {
   if (db) {
     await db.destroy()
   }
-  if (pool) {
-    await pool.end()
-  }
+  // pool.end() is called automatically by db.destroy()
 })
 
 describe('Vector Database Integration', () => {
