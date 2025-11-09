@@ -1,11 +1,14 @@
 import { describe, test, expect } from 'bun:test'
-import { 
+import {
   Kysely,
   DummyDriver,
   PostgresAdapter,
-  PostgresQueryCompiler
+  PostgresQueryCompiler,
+  sql
 } from 'kysely'
 import { pg } from '../../../src/index'
+
+const eb = { ref: (col: string) => sql.ref(col) } as any
 
 interface TestDB {
   users: {
@@ -58,7 +61,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('metadata').path(['user', 'profile']).equals({name: 'test'}))
+        .where(pg.json(eb.ref('metadata')).path(['user', 'profile']).equals({name: 'test'}))
       
       const compiled = query.compile()
       
@@ -72,7 +75,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('metadata').path(['user', 'name']).equals('john'))
+        .where(pg.json(eb.ref('metadata')).path(['user', 'name']).equals('john'))
       
       const compiled = query.compile()
       
@@ -86,7 +89,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').path('enabled').equals(true))
+        .where(pg.json(eb.ref('preferences')).path('enabled').equals(true))
       
       const compiled = query.compile()
       
@@ -100,7 +103,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('metadata').path('count').equals(42))
+        .where(pg.json(eb.ref('metadata')).path('count').equals(42))
       
       const compiled = query.compile()
       
@@ -114,7 +117,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('metadata').path('nullable').equals(null))
+        .where(pg.json(eb.ref('metadata')).path('nullable').equals(null))
       
       const compiled = query.compile()
       
@@ -128,7 +131,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('metadata').path([]).equals({root: 'value'}))
+        .where(pg.json(eb.ref('metadata')).path([]).equals({root: 'value'}))
       
       const compiled = query.compile()
       
@@ -142,7 +145,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('game').path('score').asText().equals('100'))
+        .where(pg.json(eb.ref('game')).path('score').asText().equals('100'))
       
       const compiled = query.compile()
       
@@ -157,7 +160,7 @@ describe('JSON SQL Generation', () => {
         .selectFrom('users')
         .select([
           'id',
-          pg.json('preferences').path('theme').asText().as('theme_text')
+          pg.json(eb.ref('preferences')).path('theme').asText().as('theme_text')
         ])
       
       const compiled = query.compile()
@@ -172,8 +175,8 @@ describe('JSON SQL Generation', () => {
         .selectFrom('users')
         .select([
           'id',
-          pg.json('preferences').path('theme').as('theme'),
-          pg.json('metadata').path(['user', 'profile']).as('user_profile')
+          pg.json(eb.ref('preferences')).path('theme').as('theme'),
+          pg.json(eb.ref('metadata')).path(['user', 'profile']).as('user_profile')
         ])
       
       const compiled = query.compile()
@@ -191,11 +194,11 @@ describe('JSON SQL Generation', () => {
         .selectFrom('users')
         .select([
           'id',
-          pg.json('profile').path('age').as('age'),
-          pg.json('profile').path('name').asText().as('name_text')
+          pg.json(eb.ref('profile')).path('age').as('age'),
+          pg.json(eb.ref('profile')).path('name').asText().as('name_text')
         ])
-        .where(pg.json('profile').path('age').greaterThan(18))
-        .where(pg.json('profile').path('active').equals(true))
+        .where(pg.json(eb.ref('profile')).path('age').greaterThan(18))
+        .where(pg.json(eb.ref('profile')).path('active').equals(true))
       
       const compiled = query.compile()
       
@@ -218,7 +221,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('profile').path('age').greaterThan(18))
+        .where(pg.json(eb.ref('profile')).path('age').greaterThan(18))
       
       const compiled = query.compile()
       
@@ -232,7 +235,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('profile').path('score').lessThan(100))
+        .where(pg.json(eb.ref('profile')).path('score').lessThan(100))
       
       const compiled = query.compile()
       
@@ -246,7 +249,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('profile').path('name').greaterThan('john'))
+        .where(pg.json(eb.ref('profile')).path('name').greaterThan('john'))
       
       const compiled = query.compile()
       
@@ -260,7 +263,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').path('theme').equals('dark'))
+        .where(pg.json(eb.ref('preferences')).path('theme').equals('dark'))
       
       const compiled = query.compile()
       
@@ -274,7 +277,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').path('premium').exists())
+        .where(pg.json(eb.ref('preferences')).path('premium').exists())
       
       const compiled = query.compile()
       
@@ -287,7 +290,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('config').path(['user', 'settings']).exists())
+        .where(pg.json(eb.ref('config')).path(['user', 'settings']).exists())
       
       const compiled = query.compile()
       
@@ -300,7 +303,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').path('notifications').contains({email: true}))
+        .where(pg.json(eb.ref('preferences')).path('notifications').contains({email: true}))
       
       const compiled = query.compile()
       
@@ -317,7 +320,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains({theme: 'dark', language: 'en'}))
+        .where(pg.json(eb.ref('preferences')).contains({theme: 'dark', language: 'en'}))
       
       const compiled = query.compile()
       
@@ -330,7 +333,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(true))
+        .where(pg.json(eb.ref('preferences')).contains(true))
       
       const compiled = query.compile()
       
@@ -342,7 +345,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('metadata').contains(['tag1', 'tag2']))
+        .where(pg.json(eb.ref('metadata')).contains(['tag1', 'tag2']))
       
       const compiled = query.compile()
       
@@ -354,7 +357,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('metadata').contains(null))
+        .where(pg.json(eb.ref('metadata')).contains(null))
       
       const compiled = query.compile()
       
@@ -369,7 +372,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasKey('theme'))
+        .where(pg.json(eb.ref('preferences')).hasKey('theme'))
       
       const compiled = query.compile()
       
@@ -382,7 +385,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasKey('user-profile'))
+        .where(pg.json(eb.ref('preferences')).hasKey('user-profile'))
       
       const compiled = query.compile()
       
@@ -396,7 +399,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasAllKeys(['theme', 'language']))
+        .where(pg.json(eb.ref('preferences')).hasAllKeys(['theme', 'language']))
       
       const compiled = query.compile()
       
@@ -410,7 +413,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasAllKeys([]))
+        .where(pg.json(eb.ref('preferences')).hasAllKeys([]))
       
       const compiled = query.compile()
       
@@ -423,7 +426,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasAllKeys(['theme']))
+        .where(pg.json(eb.ref('preferences')).hasAllKeys(['theme']))
       
       const compiled = query.compile()
       
@@ -437,7 +440,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasAnyKey(['theme', 'style']))
+        .where(pg.json(eb.ref('preferences')).hasAnyKey(['theme', 'style']))
       
       const compiled = query.compile()
       
@@ -452,7 +455,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasAnyKey(keys))
+        .where(pg.json(eb.ref('preferences')).hasAnyKey(keys))
       
       const compiled = query.compile()
       
@@ -471,12 +474,12 @@ describe('JSON SQL Generation', () => {
         .select([
           'id',
           'email',
-          pg.json('preferences').path('theme').asText().as('theme'),
-          pg.json('metadata').path(['user', 'name']).asText().as('display_name')
+          pg.json(eb.ref('preferences')).path('theme').asText().as('theme'),
+          pg.json(eb.ref('metadata')).path(['user', 'name']).asText().as('display_name')
         ])
-        .where(pg.json('preferences').hasKey('theme'))
-        .where(pg.json('preferences').contains({notifications: true}))
-        .where(pg.json('metadata').path(['user', 'active']).equals(true))
+        .where(pg.json(eb.ref('preferences')).hasKey('theme'))
+        .where(pg.json(eb.ref('preferences')).contains({notifications: true}))
+        .where(pg.json(eb.ref('metadata')).path(['user', 'active']).equals(true))
         .orderBy('email')
       
       const compiled = query.compile()
@@ -498,9 +501,9 @@ describe('JSON SQL Generation', () => {
         .selectFrom('users')
         .selectAll()
         .where('id', '>', 100)
-        .where(pg.json('preferences').path('theme').equals('dark'))
+        .where(pg.json(eb.ref('preferences')).path('theme').equals('dark'))
         .where('email', 'like', '%@example.com')
-        .where(pg.json('metadata').hasAllKeys(['verified', 'active']))
+        .where(pg.json(eb.ref('metadata')).hasAllKeys(['verified', 'active']))
       
       const compiled = query.compile()
       
@@ -519,13 +522,13 @@ describe('JSON SQL Generation', () => {
       const subquery = db
         .selectFrom('users')
         .select('id')
-        .where(pg.json('preferences').contains({premium: true}))
+        .where(pg.json(eb.ref('preferences')).contains({premium: true}))
       
       const query = db
         .selectFrom('products')
         .selectAll()
         .where('created_by', 'in', subquery)
-        .where(pg.json('config').hasKey('premium_features'))
+        .where(pg.json(eb.ref('config')).hasKey('premium_features'))
       
       const compiled = query.compile()
       
@@ -541,7 +544,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasKey('theme'))
+        .where(pg.json(eb.ref('preferences')).hasKey('theme'))
       
       const compiled = query.compile()
       
@@ -552,7 +555,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('users.preferences').hasKey('theme'))
+        .where(pg.json(eb.ref('users.preferences')).hasKey('theme'))
       
       const compiled = query.compile()
       
@@ -563,7 +566,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users as u')
         .selectAll()
-        .where(pg.json('u.preferences').hasKey('theme'))
+        .where(pg.json(eb.ref('u.preferences')).hasKey('theme'))
       
       const compiled = query.compile()
       
@@ -576,7 +579,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains({theme: 'dark mode'}))
+        .where(pg.json(eb.ref('preferences')).contains({theme: 'dark mode'}))
       
       const compiled = query.compile()
       
@@ -587,7 +590,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains({message: 'Hello "world" with \'quotes\''}))
+        .where(pg.json(eb.ref('preferences')).contains({message: 'Hello "world" with \'quotes\''}))
       
       const compiled = query.compile()
       
@@ -599,7 +602,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains({emoji: '🚀', chinese: '中文'}))
+        .where(pg.json(eb.ref('preferences')).contains({emoji: '🚀', chinese: '中文'}))
       
       const compiled = query.compile()
       
@@ -624,7 +627,7 @@ describe('JSON SQL Generation', () => {
       const query = db
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('metadata').contains(complexValue))
+        .where(pg.json(eb.ref('metadata')).contains(complexValue))
       
       const compiled = query.compile()
       
@@ -641,7 +644,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').set('theme', 'dark')
+            metadata: pg.json(eb.ref('metadata')).set('theme', 'dark')
           })
           .where('id', '=', 1)
         
@@ -655,7 +658,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').set(['user', 'preferences', 'lang'], 'es')
+            metadata: pg.json(eb.ref('metadata')).set(['user', 'preferences', 'lang'], 'es')
           })
           .where('id', '=', 1)
         
@@ -669,7 +672,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').set('config', { enabled: true, count: 42 })
+            metadata: pg.json(eb.ref('metadata')).set('config', { enabled: true, count: 42 })
           })
           .where('id', '=', 1)
         
@@ -683,7 +686,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').set('nullable', null)
+            metadata: pg.json(eb.ref('metadata')).set('nullable', null)
           })
           .where('id', '=', 1)
         
@@ -699,7 +702,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            stats: pg.json('stats').increment('points', 10)
+            stats: pg.json(eb.ref('stats')).increment('points', 10)
           })
           .where('id', '=', 1)
         
@@ -713,7 +716,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            lives: pg.json('lives').increment('remaining', -1)
+            lives: pg.json(eb.ref('lives')).increment('remaining', -1)
           })
           .where('id', '=', 1)
         
@@ -727,7 +730,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').increment(['user', 'score'], 50)
+            metadata: pg.json(eb.ref('metadata')).increment(['user', 'score'], 50)
           })
           .where('id', '=', 1)
         
@@ -743,7 +746,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').remove('temp_flag')
+            metadata: pg.json(eb.ref('metadata')).remove('temp_flag')
           })
           .where('id', '=', 1)
         
@@ -757,7 +760,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').remove(['temp_flag'])
+            metadata: pg.json(eb.ref('metadata')).remove(['temp_flag'])
           })
           .where('id', '=', 1)
         
@@ -771,7 +774,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').remove(['cache', 'expired_data'])
+            metadata: pg.json(eb.ref('metadata')).remove(['cache', 'expired_data'])
           })
           .where('id', '=', 1)
         
@@ -787,7 +790,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            tags: pg.json('tags').push('new-tag')
+            tags: pg.json(eb.ref('tags')).push('new-tag')
           })
           .where('id', '=', 1)
         
@@ -801,7 +804,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            history: pg.json('history').push({ action: 'login', timestamp: '2024-01-01' })
+            history: pg.json(eb.ref('history')).push({ action: 'login', timestamp: '2024-01-01' })
           })
           .where('id', '=', 1)
         
@@ -815,7 +818,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            items: pg.json('items').push(['item1', 'item2'])
+            items: pg.json(eb.ref('items')).push(['item1', 'item2'])
           })
           .where('id', '=', 1)
         
@@ -831,10 +834,10 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').set('updated_at', new Date('2024-01-01')),
-            stats: pg.json('stats').increment('login_count', 1),
-            settings: pg.json('settings').remove('temp_data'),
-            tags: pg.json('tags').push('active')
+            metadata: pg.json(eb.ref('metadata')).set('updated_at', new Date('2024-01-01')),
+            stats: pg.json(eb.ref('stats')).increment('login_count', 1),
+            settings: pg.json(eb.ref('settings')).remove('temp_data'),
+            tags: pg.json(eb.ref('tags')).push('active')
           })
           .where('id', '=', 1)
         
@@ -852,8 +855,8 @@ describe('JSON SQL Generation', () => {
           .updateTable('users')
           .set({
             email: 'newemail@example.com',
-            metadata: pg.json('metadata').set('last_login', '2024-01-01'),
-            stats: pg.json('stats').increment('points', 100)
+            metadata: pg.json(eb.ref('metadata')).set('last_login', '2024-01-01'),
+            stats: pg.json(eb.ref('stats')).increment('points', 100)
           })
           .where('id', '=', 1)
         
@@ -872,7 +875,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').set([], { root: 'value' })
+            metadata: pg.json(eb.ref('metadata')).set([], { root: 'value' })
           })
           .where('id', '=', 1)
         
@@ -885,7 +888,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').remove([])
+            metadata: pg.json(eb.ref('metadata')).remove([])
           })
           .where('id', '=', 1)
         
@@ -898,7 +901,7 @@ describe('JSON SQL Generation', () => {
         const query = db
           .updateTable('users')
           .set({
-            metadata: pg.json('metadata').set('message', 'Hello "world" with \'quotes\'')
+            metadata: pg.json(eb.ref('metadata')).set('message', 'Hello "world" with \'quotes\'')
           })
           .where('id', '=', 1)
         

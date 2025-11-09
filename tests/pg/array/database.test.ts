@@ -96,7 +96,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').hasAllOf(['typescript']))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['typescript']))
         .execute()
 
       expect(results).toBeDefined()
@@ -113,7 +113,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf(['nonexistent_tag']))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['nonexistent_tag']))
         .execute()
 
       expect(results).toBeDefined()
@@ -125,7 +125,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'scores'])
-        .where(pg.array<number>('scores').hasAllOf([95]))
+        .where((eb) => pg.array<number>(eb.ref('scores')).hasAllOf([95]))
         .execute()
 
       expect(results).toBeDefined()
@@ -141,13 +141,13 @@ describe('Array Database Integration', () => {
       const upperResults = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf(['TypeScript']))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['TypeScript']))
         .execute()
 
       const lowerResults = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf(['typescript']))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['typescript']))
         .execute()
 
       // Should be different results due to case sensitivity
@@ -160,7 +160,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').hasAllOf(['tutorial', 'programming']))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['tutorial', 'programming']))
         .execute()
 
       expect(results).toBeDefined()
@@ -177,13 +177,13 @@ describe('Array Database Integration', () => {
       const containsResults = await db
         .selectFrom('products')
         .select('id')
-        .where(pg.array('tags').hasAllOf(['typescript']))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['typescript']))
         .execute()
 
       const includesResults = await db
         .selectFrom('products')
         .select('id')
-        .where(pg.array('tags').hasAllOf(['typescript']))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['typescript']))
         .execute()
 
       // Should return identical results
@@ -198,7 +198,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf(['rust', 'golang']))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['rust', 'golang']))
         .execute()
 
       expect(results).toBeDefined()
@@ -214,7 +214,7 @@ describe('Array Database Integration', () => {
       const emptyArrayResults = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([]))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf([]))
         .execute()
 
       // Empty array should match all records (all arrays contain empty array)
@@ -227,7 +227,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'categories'])
-        .where(pg.array('categories').hasAnyOf(['education', 'electronics']))
+        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['education', 'electronics']))
         .execute()
 
       expect(results).toBeDefined()
@@ -245,7 +245,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('categories').hasAnyOf(['nonexistent1', 'nonexistent2']))
+        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['nonexistent1', 'nonexistent2']))
         .execute()
 
       expect(results.length).toBe(0)
@@ -255,7 +255,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'categories'])
-        .where(pg.array('categories').hasAnyOf(['education']))
+        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['education']))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -271,7 +271,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'roles'])
-        .where(pg.array('roles').hasAnyOf(['admin', 'user', 'moderator', 'guest']))
+        .where((eb) => pg.array(eb.ref('roles')).hasAnyOf(['admin', 'user', 'moderator', 'guest']))
         .execute()
 
       expect(results).toBeDefined()
@@ -288,7 +288,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('users')
         .selectAll()
-        .where(pg.array('roles').hasAnyOf(['nonexistent_role']))
+        .where((eb) => pg.array(eb.ref('roles')).hasAnyOf(['nonexistent_role']))
         .execute()
 
       // No users should have 'nonexistent_role'
@@ -299,7 +299,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'roles'])
-        .where(pg.array('roles').hasAnyOf(['user']))
+        .where((eb) => pg.array(eb.ref('roles')).hasAnyOf(['user']))
         .execute()
 
       // Should find users who have 'user' role
@@ -314,7 +314,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').length(), '>', 3)
+        .where((eb) => pg.array(eb.ref('tags')).length(), '>', 3)
         .execute()
 
       expect(results).toBeDefined()
@@ -331,7 +331,7 @@ describe('Array Database Integration', () => {
           'id',
           'name',
           'tags',
-          pg.array('tags').length().as('tag_count')
+          (eb) => pg.array(eb.ref('tags')).length().as('tag_count')
         ])
         .where('tags', 'is not', null)
         .execute()
@@ -358,10 +358,10 @@ describe('Array Database Integration', () => {
           'id',
           'name',
           'tags',
-          pg.array('tags').length().as('tag_count')
+          (eb) => pg.array(eb.ref('tags')).length().as('tag_count')
         ])
         .where('tags', 'is not', null)
-        .orderBy(pg.array('tags').length(), 'desc')
+        .orderBy((eb) => pg.array(eb.ref('tags')).length(), 'desc')
         .execute()
 
       expect(results.length).toBeGreaterThan(1)
@@ -439,11 +439,11 @@ describe('Array Database Integration', () => {
           'name',
           'tags',
           'categories',
-          pg.array('tags').length().as('tag_count')
+          (eb) => pg.array(eb.ref('tags')).length().as('tag_count')
         ])
-        .where(pg.array('tags').hasAllOf(['tutorial']))
-        .where(pg.array('categories').hasAnyOf(['education']))
-        .where(pg.array('tags').length(), '>=', 3)
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['tutorial']))
+        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['education']))
+        .where((eb) => pg.array(eb.ref('tags')).length(), '>=', 3)
         .orderBy('name')
         .execute()
 
@@ -461,7 +461,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf(['tutorial']))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['tutorial']))
         .where('id', '>', 1)
         .where('name', 'like', '%TypeScript%')
         .execute()
@@ -479,7 +479,7 @@ describe('Array Database Integration', () => {
       const educationProductIds = db
         .selectFrom('products')
         .select('id')
-        .where(pg.array('categories').hasAllOf(['education']))
+        .where((eb) => pg.array(eb.ref('categories')).hasAllOf(['education']))
 
       const results = await db
         .selectFrom('documents')
@@ -502,7 +502,7 @@ describe('Array Database Integration', () => {
           'documents.title',
           'documents.tags as document_tags'
         ])
-        .where(pg.array('products.tags').hasAnyOf(['tutorial', 'programming']))
+        .where((eb) => pg.array(eb.ref('products.tags')).hasAnyOf(['tutorial', 'programming']))
         .execute()
 
       expect(results).toBeDefined()
@@ -525,7 +525,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAnyOf(largeTagArray))
+        .where((eb) => pg.array(eb.ref('tags')).hasAnyOf(largeTagArray))
         .execute()
       const endTime = Date.now()
 
@@ -559,7 +559,7 @@ describe('Array Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').hasAllOf(["tag's with apostrophe"]))
+        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(["tag's with apostrophe"]))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -578,10 +578,10 @@ describe('Array Database Integration', () => {
     test('concurrent array operations', async () => {
       // Run multiple array queries concurrently
       const promises = [
-        db.selectFrom('products').selectAll().where(pg.array('tags').hasAllOf(['typescript'])).execute(),
-        db.selectFrom('products').selectAll().where(pg.array('categories').hasAnyOf(['education'])).execute(),
-        db.selectFrom('users').selectAll().where(pg.array('roles').hasAllOf(['user'])).execute(),
-        db.selectFrom('documents').selectAll().where(pg.array('tags').hasAllOf(['postgresql'])).execute()
+        db.selectFrom('products').selectAll().where((eb) => pg.array(eb.ref('tags')).hasAllOf(['typescript'])).execute(),
+        db.selectFrom('products').selectAll().where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['education'])).execute(),
+        db.selectFrom('users').selectAll().where((eb) => pg.array(eb.ref('roles')).hasAllOf(['user'])).execute(),
+        db.selectFrom('documents').selectAll().where((eb) => pg.array(eb.ref('tags')).hasAllOf(['postgresql'])).execute()
       ]
 
       const results = await Promise.all(promises)
@@ -620,7 +620,7 @@ describe('Array Database Integration', () => {
         // Append a single tag
         await db
           .updateTable('products')
-          .set({ tags: pg.array('tags').append('appended') })
+          .set((eb) => ({ tags: pg.array(eb.ref('tags')).append('appended') }))
           .where('id', '=', insertResult!.id)
           .execute()
 
@@ -666,7 +666,7 @@ describe('Array Database Integration', () => {
         // Append multiple tags
         await db
           .updateTable('products')
-          .set({ tags: pg.array('tags').append(['tag1', 'tag2']) })
+          .set((eb) => ({ tags: pg.array(eb.ref('tags')).append(['tag1', 'tag2']) }))
           .where('id', '=', insertResult!.id)
           .execute()
 
@@ -711,7 +711,7 @@ describe('Array Database Integration', () => {
         // Prepend a single tag
         await db
           .updateTable('products')
-          .set({ tags: pg.array('tags').prepend('first') })
+          .set((eb) => ({ tags: pg.array(eb.ref('tags')).prepend('first') }))
           .where('id', '=', insertResult!.id)
           .execute()
 
@@ -756,7 +756,7 @@ describe('Array Database Integration', () => {
         // Remove all occurrences of 'remove'
         await db
           .updateTable('products')
-          .set({ tags: pg.array('tags').remove('remove') })
+          .set((eb) => ({ tags: pg.array(eb.ref('tags')).remove('remove') }))
           .where('id', '=', insertResult!.id)
           .execute()
 
@@ -801,7 +801,7 @@ describe('Array Database Integration', () => {
         // Remove first element
         await db
           .updateTable('products')
-          .set({ tags: pg.array('tags').removeFirst() })
+          .set((eb) => ({ tags: pg.array(eb.ref('tags')).removeFirst() }))
           .where('id', '=', insertResult!.id)
           .execute()
 
@@ -846,7 +846,7 @@ describe('Array Database Integration', () => {
         // Remove last element
         await db
           .updateTable('products')
-          .set({ tags: pg.array('tags').removeLast() })
+          .set((eb) => ({ tags: pg.array(eb.ref('tags')).removeLast() }))
           .where('id', '=', insertResult!.id)
           .execute()
 
@@ -876,9 +876,9 @@ describe('Array Database Integration', () => {
           'id',
           'name',
           'tags',
-          pg.array('tags').first().as('first_tag')
+          (eb) => pg.array(eb.ref('tags')).first().as('first_tag')
         ])
-        .where(pg.array('tags').length(), '>', 0)
+        .where((eb) => pg.array(eb.ref('tags')).length(), '>', 0)
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -897,9 +897,9 @@ describe('Array Database Integration', () => {
           'id',
           'name', 
           'tags',
-          pg.array('tags').last().as('last_tag')
+          (eb) => pg.array(eb.ref('tags')).last().as('last_tag')
         ])
-        .where(pg.array('tags').length(), '>', 0)
+        .where((eb) => pg.array(eb.ref('tags')).length(), '>', 0)
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -912,22 +912,20 @@ describe('Array Database Integration', () => {
     })
 
     test('first() and last() can be used in WHERE clauses', async () => {
-      // Find products where first tag is 'typescript'
       const firstResults = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').first(), '=', 'typescript')
+        .where((eb) => pg.array(eb.ref('tags')).first(), '=', 'typescript')
         .execute()
 
       for (const result of firstResults) {
         expect(result.tags[0]).toBe('typescript')
       }
 
-      // Find products where last tag is 'tutorial'
       const lastResults = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where(pg.array('tags').last(), '=', 'tutorial')
+        .where((eb) => pg.array(eb.ref('tags')).last(), '=', 'tutorial')
         .execute()
 
       for (const result of lastResults) {

@@ -1,4 +1,4 @@
-import { sql, type Expression, type RawBuilder } from 'kysely'
+import { sql, type Expression, type RawBuilder, type SimpleReferenceExpression } from 'kysely'
 import type { JsonValue } from '../types/index.js'
 
 /**
@@ -243,28 +243,10 @@ export interface JsonOperations extends JsonUpdateOperations {
 }
 
 /**
- * Create PostgreSQL JSON operations for a column
- * 
- * @param column Column name or expression
- * @returns JSON operations builder
- * 
- * @example
- * ```ts
- * import { pg } from 'kysely-helpers'
- * 
- * const results = await db
- *   .selectFrom('users')
- *   .selectAll()
- *   .where(pg.json('preferences').get('theme').equals('dark'))
- *   .where(pg.json('metadata').contains({verified: true}))
- *   .execute()
- * ```
- */
-/**
  * Helper function to determine if a value should use JSON mode (#>) or text mode (#>>)
  */
 function isComplexValue(value: any): boolean {
-  return value !== null && 
+  return value !== null &&
          (typeof value === 'object' || Array.isArray(value))
 }
 
@@ -286,8 +268,40 @@ function serializeTextValue(value: any): string {
   return value.toString()
 }
 
-export function json(column: string): JsonOperations {
-  const columnRef = sql.ref(column)
+/**
+ * Create PostgreSQL JSONB operations for a column using Kysely expression references
+ *
+ * This function provides type-safe JSONB operations that integrate seamlessly with Kysely's
+ * query builder. It requires using the expression builder pattern (eb.ref()) to ensure
+ * compile-time validation of column names and types.
+ *
+ * @param column Expression reference from Kysely's expression builder (must be a JSON/JSONB column)
+ * @returns JSON operations builder
+ *
+ * @example
+ * ```ts
+ * import { pg } from 'kysely-helpers'
+ *
+ * // Type-safe JSON operations with expression builder
+ * const results = await db
+ *   .selectFrom('users')
+ *   .where((eb) => pg.json(eb.ref('preferences')).path('theme').equals('dark'))
+ *   .where((eb) => pg.json(eb.ref('metadata')).contains({verified: true}))
+ *   .execute()
+ *
+ * // Update operations
+ * await db
+ *   .updateTable('users')
+ *   .set((eb) => ({
+ *     metadata: pg.json(eb.ref('metadata')).set('theme', 'dark')
+ *   }))
+ *   .execute()
+ * ```
+ */
+export function json(column: SimpleReferenceExpression<any, any>): JsonOperations
+
+export function json(column: SimpleReferenceExpression<any, any>): JsonOperations {
+  const columnRef = column
 
   return {
     // Update operations

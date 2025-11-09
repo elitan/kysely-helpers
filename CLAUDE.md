@@ -19,7 +19,7 @@ bun run build           # Complete build (CJS, ESM, types)
 bun run typecheck       # TypeScript type checking
 
 # Testing
-bun run test            # Unit tests only (tests/unit/)
+bun run test            # Unit tests only (tests/pg/)
 bun run test:watch      # Unit tests in watch mode
 bun run test:integration # Integration tests with real PostgreSQL
 bun run test:all        # All tests (unit + integration)

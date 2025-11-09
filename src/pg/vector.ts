@@ -1,4 +1,4 @@
-import { sql, type RawBuilder } from 'kysely'
+import { sql, type RawBuilder, type SimpleReferenceExpression } from 'kysely'
 
 /**
  * PostgreSQL vector helper functions (pgvector extension)
@@ -89,37 +89,40 @@ export function embedding(embedding: number[]): RawBuilder<any> {
 }
 
 /**
- * Create PostgreSQL vector operations for a column
- * 
- * @param column Column name or expression
+ * Create PostgreSQL vector operations for a column using Kysely expression references
+ *
+ * This function provides type-safe vector operations that integrate seamlessly with Kysely's
+ * query builder. It requires using the expression builder pattern (eb.ref()) to ensure
+ * compile-time validation of column names and types.
+ *
+ * @param column Expression reference from Kysely's expression builder (must be a vector/number[] column)
  * @returns Vector operations builder
- * 
+ *
  * @example
  * ```ts
  * import { pg } from 'kysely-helpers'
- * 
- * // Semantic search query
+ *
+ * // Semantic search with type safety
  * const searchEmbedding = await openai.embeddings.create({
  *   model: "text-embedding-3-small",
  *   input: userQuery
  * })
- * 
+ *
  * const results = await db
  *   .selectFrom('documents')
- *   .select([
+ *   .select((eb) => [
  *     'id',
  *     'title',
- *     'content',
- *     pg.vector('embedding').similarity(searchEmbedding.data[0].embedding).as('similarity')
+ *     pg.vector(eb.ref('embedding')).similarity(searchEmbedding.data[0].embedding).as('similarity')
  *   ])
- *   .where(pg.vector('embedding').similarity(searchEmbedding.data[0].embedding), '>', 0.8)
+ *   .where((eb) => pg.vector(eb.ref('embedding')).similarity(searchEmbedding.data[0].embedding), '>', 0.8)
  *   .orderBy('similarity', 'desc')
  *   .limit(10)
  *   .execute()
  * ```
  */
-export function vector(column: string): VectorOperations {
-  const columnRef = sql.ref(column)
+export function vector(column: SimpleReferenceExpression<any, any>): VectorOperations {
+  const columnRef = column
 
   return {
     toArray: () => {

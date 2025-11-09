@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
-import { 
+import {
   Kysely,
   DummyDriver,
   PostgresAdapter,
@@ -9,6 +9,8 @@ import {
 } from 'kysely'
 import { Pool } from 'pg'
 import { pg } from '../../../src/index'
+
+const eb = { ref: (col: string) => sql.ref(col) } as any
 
 interface TestDB {
   users: {
@@ -88,7 +90,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(maliciousObject))
+        .where(pg.json(eb.ref('preferences')).contains(maliciousObject))
       
       const compiled = query.compile()
       
@@ -108,7 +110,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasKey(maliciousKey))
+        .where(pg.json(eb.ref('preferences')).hasKey(maliciousKey))
       
       const compiled = query.compile()
       
@@ -129,7 +131,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasAllKeys(maliciousKeys))
+        .where(pg.json(eb.ref('preferences')).hasAllKeys(maliciousKeys))
       
       const compiled = query.compile()
       
@@ -155,7 +157,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasAnyKey(maliciousKeys))
+        .where(pg.json(eb.ref('preferences')).hasAnyKey(maliciousKeys))
       
       const compiled = query.compile()
       
@@ -170,7 +172,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').path(maliciousPath).equals('dark'))
+        .where(pg.json(eb.ref('preferences')).path(maliciousPath).equals('dark'))
       
       const compiled = query.compile()
       
@@ -190,7 +192,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(maliciousValue))
+        .where(pg.json(eb.ref('preferences')).contains(maliciousValue))
       
       const compiled = query.compile()
       
@@ -214,7 +216,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(maliciousNestedObject))
+        .where(pg.json(eb.ref('preferences')).contains(maliciousNestedObject))
       
       const compiled = query.compile()
       
@@ -232,7 +234,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasKey(keyWithQuotes))
+        .where(pg.json(eb.ref('preferences')).hasKey(keyWithQuotes))
       
       const compiled = query.compile()
       
@@ -246,7 +248,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(valueWithQuotes))
+        .where(pg.json(eb.ref('preferences')).contains(valueWithQuotes))
       
       const compiled = query.compile()
       
@@ -260,7 +262,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(valueWithBackslashes))
+        .where(pg.json(eb.ref('preferences')).contains(valueWithBackslashes))
       
       const compiled = query.compile()
       
@@ -277,7 +279,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(unicodeValue))
+        .where(pg.json(eb.ref('preferences')).contains(unicodeValue))
       
       const compiled = query.compile()
       
@@ -292,7 +294,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(controlChars))
+        .where(pg.json(eb.ref('preferences')).contains(controlChars))
       
       const compiled = query.compile()
       
@@ -308,7 +310,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(valueWithNullByte))
+        .where(pg.json(eb.ref('preferences')).contains(valueWithNullByte))
       
       const compiled = query.compile()
       
@@ -327,7 +329,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(largeObject))
+        .where(pg.json(eb.ref('preferences')).contains(largeObject))
       
       const compiled = query.compile()
       
@@ -345,7 +347,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(emptyStructures))
+        .where(pg.json(eb.ref('preferences')).contains(emptyStructures))
       
       const compiled = query.compile()
       
@@ -366,7 +368,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(deepObject))
+        .where(pg.json(eb.ref('preferences')).contains(deepObject))
       
       const compiled = query.compile()
       
@@ -390,7 +392,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(dangerousObject))
+        .where(pg.json(eb.ref('preferences')).contains(dangerousObject))
       
       const compiled = query.compile()
       
@@ -414,7 +416,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(jsonWithKeywords))
+        .where(pg.json(eb.ref('preferences')).contains(jsonWithKeywords))
       
       const compiled = query.compile()
       
@@ -447,7 +449,7 @@ describe('JSON Security Tests', () => {
         const results = await integrationDb
           .selectFrom('users')
           .selectAll()
-          .where(pg.json('preferences').contains(maliciousInput))
+          .where((eb) => pg.json(eb.ref('preferences')).contains(maliciousInput))
           .execute()
 
         expect(Array.isArray(results)).toBe(true)
@@ -495,7 +497,7 @@ describe('JSON Security Tests', () => {
           .selectFrom('users')
           .select(['id', 'name', 'preferences'])
           .where('id', '=', insertResult!.id)
-          .where(pg.json('preferences').hasKey('unicode'))
+          .where((eb) => pg.json(eb.ref('preferences')).hasKey('unicode'))
           .execute()
 
         expect(results.length).toBe(1)
@@ -529,7 +531,7 @@ describe('JSON Security Tests', () => {
         integrationDb!
           .selectFrom('users')
           .selectAll()
-          .where(pg.json('preferences').contains(maliciousQuery))
+          .where((eb) => pg.json(eb.ref('preferences')).contains(maliciousQuery))
           .execute()
       )
 
@@ -570,7 +572,7 @@ describe('JSON Security Tests', () => {
       const results = await integrationDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains(complexMaliciousObject))
+        .where((eb) => pg.json(eb.ref('preferences')).contains(complexMaliciousObject))
         .execute()
 
       // Should execute without error
@@ -592,7 +594,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').hasKey('theme'))
+        .where(pg.json(eb.ref('preferences')).hasKey('theme'))
       
       const compiled = query.compile()
       
@@ -605,7 +607,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('users.preferences').hasKey('theme'))
+        .where(pg.json(eb.ref('users.preferences')).hasKey('theme'))
       
       const compiled = query.compile()
       
@@ -617,7 +619,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences"; DROP TABLE users; --').hasKey('theme'))
+        .where(pg.json(eb.ref('preferences"; DROP TABLE users; --')).hasKey('theme'))
       
       const compiled = query.compile()
       
@@ -637,7 +639,7 @@ describe('JSON Security Tests', () => {
       const query = compileDb
         .selectFrom('users')
         .selectAll()
-        .where(pg.json('preferences').contains({}))
+        .where(pg.json(eb.ref('preferences')).contains({}))
       
       const compiled = query.compile()
       
@@ -649,7 +651,7 @@ describe('JSON Security Tests', () => {
         const query = compileDb
           .selectFrom('users')
           .selectAll()
-          .where(pg.json('preferences').contains(null))
+          .where(pg.json(eb.ref('preferences')).contains(null))
         
         query.compile()
       }).not.toThrow()
@@ -662,7 +664,7 @@ describe('JSON Security Tests', () => {
         .selectFrom('users')
         .select([
           'id',
-          pg.json('preferences').path(maliciousPath).asText().as('theme')
+          pg.json(eb.ref('preferences')).path(maliciousPath).asText().as('theme')
         ])
       
       const compiled = query.compile()

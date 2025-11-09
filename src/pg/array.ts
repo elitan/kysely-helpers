@@ -1,4 +1,4 @@
-import { sql, type Expression, type RawBuilder } from 'kysely'
+import { sql, type Expression, type RawBuilder, type SimpleReferenceExpression } from 'kysely'
 
 /**
  * PostgreSQL array helper functions
@@ -146,25 +146,37 @@ export interface ArrayOperations<T> extends ArrayUpdateOperations<T> {
 }
 
 /**
- * Create PostgreSQL array operations for a column
- * 
- * @param column Column name or expression
- * @returns Array operations builder
- * 
+ * Create PostgreSQL array operations for a column using Kysely expression references
+ *
+ * This function provides type-safe array operations that integrate seamlessly with Kysely's
+ * query builder. It requires using the expression builder pattern (eb.ref()) to ensure
+ * compile-time validation of column names and types.
+ *
+ * @param column Expression reference from Kysely's expression builder (must be an array column)
+ * @returns Array operations builder with inferred element type
+ *
  * @example
  * ```ts
  * import { pg } from 'kysely-helpers'
- * 
+ *
+ * // Type-safe array operations with expression builder
  * const results = await db
  *   .selectFrom('products')
- *   .selectAll()
- *   .where(pg.array('tags').includes('featured'))
- *   .where(pg.array('categories').overlaps(['electronics', 'gadgets']))
+ *   .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['featured']))
+ *   .where((eb) => pg.array(eb.ref('category_ids')).hasAllOf([1, 2, 3]))
+ *   .execute()
+ *
+ * // Update operations
+ * await db
+ *   .updateTable('products')
+ *   .set((eb) => ({
+ *     tags: pg.array(eb.ref('tags')).append('new-tag')
+ *   }))
  *   .execute()
  * ```
  */
-export function array<T = string>(column: string): ArrayOperations<T> {
-  const columnRef = sql.ref(column)
+export function array<T = string>(column: SimpleReferenceExpression<any, any>): ArrayOperations<T> {
+  const columnRef = column
 
   // Helper function to determine PostgreSQL array type for casting
   const getArrayType = (values: T[]): string => {
@@ -181,7 +193,7 @@ export function array<T = string>(column: string): ArrayOperations<T> {
     append: (value: T | T[]) => {
       if (Array.isArray(value)) {
         if (value.length === 0) {
-          return columnRef as RawBuilder<T[]>
+          return sql<T[]>`${columnRef}`
         }
         const arrayType = getArrayType(value)
         return sql<T[]>`${columnRef} || ARRAY[${sql.join(value)}]::${sql.raw(arrayType)}`
@@ -194,7 +206,7 @@ export function array<T = string>(column: string): ArrayOperations<T> {
     prepend: (value: T | T[]) => {
       if (Array.isArray(value)) {
         if (value.length === 0) {
-          return columnRef as RawBuilder<T[]>
+          return sql<T[]>`${columnRef}`
         }
         const arrayType = getArrayType(value)
         return sql<T[]>`ARRAY[${sql.join(value)}]::${sql.raw(arrayType)} || ${columnRef}`
