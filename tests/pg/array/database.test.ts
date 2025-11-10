@@ -58,7 +58,7 @@ beforeAll(async () => {
   // Connect to database with retries
   pool = new Pool(DB_CONFIG)
   
-  let retries = 30
+  let retries = 5
   let connected = false
   
   while (retries > 0 && !connected) {
@@ -75,7 +75,7 @@ beforeAll(async () => {
         console.log('Run: docker-compose up -d postgres')
         process.exit(0)
       }
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 200))
     }
   }
 
