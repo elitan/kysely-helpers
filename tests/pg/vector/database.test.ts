@@ -103,13 +103,19 @@ afterAll(async () => {
   // pool.end() is called automatically by db.destroy()
 })
 
+// Helper to skip tests when DB is unavailable
+function skipIfNoDb() {
+  if (!db) {
+    console.log('⚠️ Skipping test: database not available')
+    return true
+  }
+  return false
+}
+
 describe('Vector Database Integration', () => {
   describe('Basic vector operations', () => {
     test('similarity() with cosine algorithm (default)', async () => {
-      if (!db) {
-        console.log('⚠️ Skipping test: database not available')
-        return
-      }
+      if (skipIfNoDb()) return
       const searchVector = [0.1, 0.2, 0.3, 0.4, 0.5]
 
       const results = await db
@@ -139,6 +145,7 @@ describe('Vector Database Integration', () => {
     })
 
     test('similarity() with cosine algorithm (explicit)', async () => {
+      if (skipIfNoDb()) return
       const searchVector = [0.5, 0.4, 0.3, 0.2, 0.1]
 
       const results = await db
@@ -161,6 +168,7 @@ describe('Vector Database Integration', () => {
     })
 
     test('similarity() with euclidean algorithm', async () => {
+      if (skipIfNoDb()) return
       const searchVector = [1, 0, 1, 0, 1]
 
       const results = await db
@@ -183,6 +191,7 @@ describe('Vector Database Integration', () => {
     })
 
     test('similarity() with dot product algorithm', async () => {
+      if (skipIfNoDb()) return
       const searchVector = [0.2, 0.4, 0.6, 0.8, 1.0]
 
       const results = await db
@@ -205,6 +214,7 @@ describe('Vector Database Integration', () => {
     })
 
     test('toArray() converts vectors back to JavaScript arrays', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('document_embeddings')
         .select((eb) => [
@@ -231,6 +241,7 @@ describe('Vector Database Integration', () => {
 
   describe('Complex vector queries', () => {
     test('semantic search with multiple criteria', async () => {
+      if (skipIfNoDb()) return
       const searchVector = [0.3, 0.6, 0.9, 0.2, 0.5]
 
       const results = await db
@@ -257,6 +268,7 @@ describe('Vector Database Integration', () => {
     })
 
     test('compare different similarity algorithms', async () => {
+      if (skipIfNoDb()) return
       const searchVector = [0.1, 0.2, 0.3, 0.4, 0.5]
 
       const results = await db
@@ -285,6 +297,7 @@ describe('Vector Database Integration', () => {
     })
 
     test('vector operations with subqueries', async () => {
+      if (skipIfNoDb()) return
       const searchVector = [0.5, 0.5, 0.5, 0.5, 0.5]
 
       const results = await db
@@ -314,6 +327,7 @@ describe('Vector Database Integration', () => {
 
   describe('Edge cases and performance', () => {
     test('handles empty vector gracefully', async () => {
+      if (skipIfNoDb()) return
       // Empty vectors are not supported by pgvector, so this should throw an error
       const emptyVector: number[] = []
 
@@ -337,6 +351,7 @@ describe('Vector Database Integration', () => {
     })
 
     test('handles dimension mismatch gracefully', async () => {
+      if (skipIfNoDb()) return
       // Test with a vector that doesn't match the database dimension (5D)
       const wrongDimVector = Array.from({length: 10}, (_, i) => i / 10)
 
@@ -360,6 +375,7 @@ describe('Vector Database Integration', () => {
     })
 
     test('concurrent vector operations', async () => {
+      if (skipIfNoDb()) return
       const vectors = [
         [0.1, 0.2, 0.3, 0.4, 0.5],
         [0.5, 0.4, 0.3, 0.2, 0.1],
@@ -391,6 +407,7 @@ describe('Vector Database Integration', () => {
     })
 
     test('vector operations with extreme values', async () => {
+      if (skipIfNoDb()) return
       const extremeVector = [1e10, -1e10, 1e-10, -1e-10, 0]
 
       try {
@@ -413,6 +430,7 @@ describe('Vector Database Integration', () => {
 
   describe('Data manipulation with vectors', () => {
     test('insert and query vector data', async () => {
+      if (skipIfNoDb()) return
       const testEmbedding = [0.1, 0.2, 0.3, 0.4, 0.5]
       const testContent = 'Test document for vector operations'
 

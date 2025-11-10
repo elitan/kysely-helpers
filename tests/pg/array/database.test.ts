@@ -90,9 +90,19 @@ afterAll(async () => {
   }
 })
 
+// Helper to skip tests when DB is unavailable
+function skipIfNoDb() {
+  if (!db) {
+    console.log('⚠️ Skipping test: database not available');
+    return true;
+  }
+  return false;
+}
+
 describe('Array Database Integration', () => {
   describe('hasAllOf() database operations', () => {
     test('finds products with specific tag', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
@@ -110,6 +120,7 @@ describe('Array Database Integration', () => {
     })
 
     test('returns empty result for non-existent tag', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .selectAll()
@@ -122,6 +133,7 @@ describe('Array Database Integration', () => {
     })
 
     test('works with different data types (number arrays)', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'scores'])
@@ -137,6 +149,7 @@ describe('Array Database Integration', () => {
     })
 
     test('case sensitive string matching', async () => {
+      if (skipIfNoDb()) return
       // Should not find 'TypeScript' when searching for 'typescript'
       const upperResults = await db
         .selectFrom('products')
@@ -157,6 +170,7 @@ describe('Array Database Integration', () => {
 
   describe('hasAllOf() database operations', () => {
     test('finds products containing multiple tags', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
@@ -174,6 +188,7 @@ describe('Array Database Integration', () => {
     })
 
     test('handles single value same as hasAllOf() with single element array', async () => {
+      if (skipIfNoDb()) return
       const containsResults = await db
         .selectFrom('products')
         .select('id')
@@ -195,6 +210,7 @@ describe('Array Database Integration', () => {
     })
 
     test('returns empty for non-matching array', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .selectAll()
@@ -206,6 +222,7 @@ describe('Array Database Integration', () => {
     })
 
     test('empty array matches all records', async () => {
+      if (skipIfNoDb()) return
       const allResults = await db
         .selectFrom('products')
         .selectAll()
@@ -224,6 +241,7 @@ describe('Array Database Integration', () => {
 
   describe('hasAnyOf() database operations', () => {
     test('finds products with any matching categories', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'categories'])
@@ -242,6 +260,7 @@ describe('Array Database Integration', () => {
     })
 
     test('returns empty for non-matching arrays', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .selectAll()
@@ -252,6 +271,7 @@ describe('Array Database Integration', () => {
     })
 
     test('single element array works correctly', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'categories'])
@@ -268,6 +288,7 @@ describe('Array Database Integration', () => {
 
   describe('hasAnyOf() database operations (formerly containedBy)', () => {
     test('finds arrays with any roles from allowed set', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'roles'])
@@ -285,6 +306,7 @@ describe('Array Database Integration', () => {
     })
 
     test('empty result when no arrays have any of the specified roles', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('users')
         .selectAll()
@@ -296,6 +318,7 @@ describe('Array Database Integration', () => {
     })
 
     test('single role search', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'roles'])
@@ -311,6 +334,7 @@ describe('Array Database Integration', () => {
 
   describe('length() database operations', () => {
     test('filters by array length in WHERE clause', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
@@ -325,6 +349,7 @@ describe('Array Database Integration', () => {
     })
 
     test('selects array length in results', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select([
@@ -352,6 +377,7 @@ describe('Array Database Integration', () => {
     })
 
     test('ordering by array length', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select([
@@ -379,6 +405,7 @@ describe('Array Database Integration', () => {
     })
 
     test('filtering by zero length (empty arrays)', async () => {
+      if (skipIfNoDb()) return
       // First, insert a product with empty tags for testing
       const insertResult = await db
         .insertInto('products')
@@ -432,6 +459,7 @@ describe('Array Database Integration', () => {
 
   describe('Complex array queries', () => {
     test('multiple array operations combined', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select([
@@ -458,6 +486,7 @@ describe('Array Database Integration', () => {
     })
 
     test('array operations with regular conditions', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .selectAll()
@@ -476,6 +505,7 @@ describe('Array Database Integration', () => {
     })
 
     test('subquery with array operations', async () => {
+      if (skipIfNoDb()) return
       const educationProductIds = db
         .selectFrom('products')
         .select('id')
@@ -492,6 +522,7 @@ describe('Array Database Integration', () => {
     })
 
     test('JOIN with array operations', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .innerJoin('documents', 'products.id', 'documents.id')
@@ -518,6 +549,7 @@ describe('Array Database Integration', () => {
 
   describe('Performance and edge cases', () => {
     test('handles large arrays efficiently', async () => {
+      if (skipIfNoDb()) return
       // Create a large array for testing
       const largeTagArray = Array.from({length: 100}, (_, i) => `tag${i}`)
       
@@ -535,6 +567,7 @@ describe('Array Database Integration', () => {
     })
 
     test('handles special characters in array elements', async () => {
+      if (skipIfNoDb()) return
       // Insert test data with special characters
       const insertResult = await db
         .insertInto('products')
@@ -576,6 +609,7 @@ describe('Array Database Integration', () => {
     })
 
     test('concurrent array operations', async () => {
+      if (skipIfNoDb()) return
       // Run multiple array queries concurrently
       const promises = [
         db.selectFrom('products').selectAll().where((eb) => pg.array(eb.ref('tags')).hasAllOf(['typescript'])).execute(),
@@ -596,6 +630,7 @@ describe('Array Database Integration', () => {
 
   describe('Array update operations database tests', () => {
     test('append() single value works in database', async () => {
+      if (skipIfNoDb()) return
       // Insert test product
       const insertResult = await db
         .insertInto('products')
@@ -642,6 +677,7 @@ describe('Array Database Integration', () => {
     })
 
     test('append() multiple values works in database', async () => {
+      if (skipIfNoDb()) return
       // Insert test product
       const insertResult = await db
         .insertInto('products')
@@ -688,6 +724,7 @@ describe('Array Database Integration', () => {
     })
 
     test('prepend() single value works in database', async () => {
+      if (skipIfNoDb()) return
       const insertResult = await db
         .insertInto('products')
         .values({
@@ -733,6 +770,7 @@ describe('Array Database Integration', () => {
     })
 
     test('remove() works in database', async () => {
+      if (skipIfNoDb()) return
       const insertResult = await db
         .insertInto('products')
         .values({
@@ -778,6 +816,7 @@ describe('Array Database Integration', () => {
     })
 
     test('removeFirst() works in database', async () => {
+      if (skipIfNoDb()) return
       const insertResult = await db
         .insertInto('products')
         .values({
@@ -823,6 +862,7 @@ describe('Array Database Integration', () => {
     })
 
     test('removeLast() works in database', async () => {
+      if (skipIfNoDb()) return
       const insertResult = await db
         .insertInto('products')
         .values({
@@ -870,6 +910,7 @@ describe('Array Database Integration', () => {
 
   describe('Array select operations database tests', () => {
     test('first() works in database', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select([
@@ -891,6 +932,7 @@ describe('Array Database Integration', () => {
     })
 
     test('last() works in database', async () => {
+      if (skipIfNoDb()) return
       const results = await db
         .selectFrom('products')
         .select([
@@ -912,6 +954,7 @@ describe('Array Database Integration', () => {
     })
 
     test('first() and last() can be used in WHERE clauses', async () => {
+      if (skipIfNoDb()) return
       const firstResults = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
