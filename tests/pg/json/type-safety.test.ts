@@ -80,7 +80,7 @@ describe('JSON Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
       const metadataOp = pg.json(eb.ref('products.metadata'))
-      const result = metadataOp.extract('theme')
+      const result = metadataOp.path('theme')
 
       expect(result).toBeDefined()
     })
@@ -125,7 +125,7 @@ describe('JSON Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
       const metadataOp = pg.json(eb.ref('products.metadata'))
-      const result = metadataOp.extract('key')
+      const result = metadataOp.path('key')
 
       expect(result).toBeDefined()
     })
@@ -134,7 +134,7 @@ describe('JSON Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
       const configOp = pg.json(eb.ref('products.config'))
-      const result = configOp.extract('theme')
+      const result = configOp.path('theme')
 
       expect(result).toBeDefined()
     })
