@@ -123,9 +123,9 @@ describe('Vector Database Integration', () => {
         .select((eb) => [
           'id',
           'content',
-          pg.vector(eb.ref('embedding')).similarity(searchVector).as('similarity')
+          pg(eb).vector('embedding').similarity(searchVector).as('similarity')
         ])
-        .where((eb) => pg.vector(eb.ref('embedding')).similarity(searchVector), '>', 0.1)
+        .where((eb) => pg(eb).vector('embedding').similarity(searchVector), '>', 0.1)
         .orderBy('similarity', 'desc')
         .limit(10)
         .execute()
@@ -152,9 +152,9 @@ describe('Vector Database Integration', () => {
         .selectFrom('document_embeddings')
         .select((eb) => [
           'id',
-          pg.vector(eb.ref('embedding')).similarity(searchVector, 'cosine').as('cosine_similarity')
+          pg(eb).vector('embedding').similarity(searchVector, 'cosine').as('cosine_similarity')
         ])
-        .where((eb) => pg.vector(eb.ref('embedding')).similarity(searchVector, 'cosine'), '>', 0.2)
+        .where((eb) => pg(eb).vector('embedding').similarity(searchVector, 'cosine'), '>', 0.2)
         .orderBy('cosine_similarity', 'desc')
         .limit(5)
         .execute()
@@ -175,9 +175,9 @@ describe('Vector Database Integration', () => {
         .selectFrom('document_embeddings')
         .select((eb) => [
           'id',
-          pg.vector(eb.ref('embedding')).similarity(searchVector, 'euclidean').as('euclidean_similarity')
+          pg(eb).vector('embedding').similarity(searchVector, 'euclidean').as('euclidean_similarity')
         ])
-        .where((eb) => pg.vector(eb.ref('embedding')).similarity(searchVector, 'euclidean'), '>', 0.1)
+        .where((eb) => pg(eb).vector('embedding').similarity(searchVector, 'euclidean'), '>', 0.1)
         .orderBy('euclidean_similarity', 'desc')
         .limit(5)
         .execute()
@@ -198,9 +198,9 @@ describe('Vector Database Integration', () => {
         .selectFrom('document_embeddings')
         .select((eb) => [
           'id',
-          pg.vector(eb.ref('embedding')).similarity(searchVector, 'dot').as('dot_similarity')
+          pg(eb).vector('embedding').similarity(searchVector, 'dot').as('dot_similarity')
         ])
-        .where((eb) => pg.vector(eb.ref('embedding')).similarity(searchVector, 'dot'), '>', 0.3)
+        .where((eb) => pg(eb).vector('embedding').similarity(searchVector, 'dot'), '>', 0.3)
         .orderBy('dot_similarity', 'desc')
         .limit(5)
         .execute()
@@ -220,7 +220,7 @@ describe('Vector Database Integration', () => {
         .select((eb) => [
           'id',
           'content',
-          pg.vector(eb.ref('embedding')).toArray().as('embedding_array')
+          pg(eb).vector('embedding').toArray().as('embedding_array')
         ])
         .limit(3)
         .execute()
@@ -249,11 +249,11 @@ describe('Vector Database Integration', () => {
         .select((eb) => [
           'id',
           'content',
-          pg.vector(eb.ref('embedding')).similarity(searchVector).as('similarity'),
-          pg.vector(eb.ref('embedding')).toArray().as('embedding_array')
+          pg(eb).vector('embedding').similarity(searchVector).as('similarity'),
+          pg(eb).vector('embedding').toArray().as('embedding_array')
         ])
         .where('content', 'like', '%test%')
-        .where((eb) => pg.vector(eb.ref('embedding')).similarity(searchVector), '>', 0.1)
+        .where((eb) => pg(eb).vector('embedding').similarity(searchVector), '>', 0.1)
         .orderBy('similarity', 'desc')
         .limit(5)
         .execute()
@@ -276,9 +276,9 @@ describe('Vector Database Integration', () => {
         .select((eb) => [
           'id',
           'content',
-          pg.vector(eb.ref('embedding')).similarity(searchVector, 'cosine').as('cosine_sim'),
-          pg.vector(eb.ref('embedding')).similarity(searchVector, 'euclidean').as('euclidean_sim'),
-          pg.vector(eb.ref('embedding')).similarity(searchVector, 'dot').as('dot_sim')
+          pg(eb).vector('embedding').similarity(searchVector, 'cosine').as('cosine_sim'),
+          pg(eb).vector('embedding').similarity(searchVector, 'euclidean').as('euclidean_sim'),
+          pg(eb).vector('embedding').similarity(searchVector, 'dot').as('dot_sim')
         ])
         .limit(3)
         .execute()
@@ -305,12 +305,12 @@ describe('Vector Database Integration', () => {
         .select((eb) => [
           'id',
           'content',
-          pg.vector(eb.ref('embedding')).similarity(searchVector).as('similarity')
+          pg(eb).vector('embedding').similarity(searchVector).as('similarity')
         ])
         .where('id', 'in',
           db.selectFrom('document_embeddings')
             .select('id')
-            .where((eb) => pg.vector(eb.ref('embedding')).similarity(searchVector), '>', 0.2)
+            .where((eb) => pg(eb).vector('embedding').similarity(searchVector), '>', 0.2)
             .limit(5)
         )
         .orderBy('similarity', 'desc')
@@ -336,7 +336,7 @@ describe('Vector Database Integration', () => {
           .selectFrom('document_embeddings')
           .select((eb) => [
             'id',
-            pg.vector(eb.ref('embedding')).similarity(emptyVector).as('similarity')
+            pg(eb).vector('embedding').similarity(emptyVector).as('similarity')
           ])
           .limit(1)
           .execute()
@@ -360,7 +360,7 @@ describe('Vector Database Integration', () => {
           .selectFrom('document_embeddings')
           .select((eb) => [
             'id',
-            pg.vector(eb.ref('embedding')).similarity(wrongDimVector).as('similarity')
+            pg(eb).vector('embedding').similarity(wrongDimVector).as('similarity')
           ])
           .limit(1)
           .execute()
@@ -388,9 +388,9 @@ describe('Vector Database Integration', () => {
           .selectFrom('document_embeddings')
           .select((eb) => [
             'id',
-            pg.vector(eb.ref('embedding')).similarity(vector).as('similarity')
+            pg(eb).vector('embedding').similarity(vector).as('similarity')
           ])
-          .where((eb) => pg.vector(eb.ref('embedding')).similarity(vector), '>', 0.1)
+          .where((eb) => pg(eb).vector('embedding').similarity(vector), '>', 0.1)
           .limit(3)
           .execute()
       )
@@ -415,7 +415,7 @@ describe('Vector Database Integration', () => {
           .selectFrom('document_embeddings')
           .select((eb) => [
             'id',
-            pg.vector(eb.ref('embedding')).similarity(extremeVector).as('similarity')
+            pg(eb).vector('embedding').similarity(extremeVector).as('similarity')
           ])
           .limit(2)
           .execute()
@@ -450,8 +450,8 @@ describe('Vector Database Integration', () => {
         .select((eb) => [
           'id',
           'content',
-          pg.vector(eb.ref('embedding')).similarity(testEmbedding).as('similarity'),
-          pg.vector(eb.ref('embedding')).toArray().as('embedding_array')
+          pg(eb).vector('embedding').similarity(testEmbedding).as('similarity'),
+          pg(eb).vector('embedding').toArray().as('embedding_array')
         ])
         .where('content', '=', testContent)
         .execute()

@@ -10,7 +10,7 @@ const eb = {
 describe('Array API', () => {
   describe('Function creation', () => {
     test('pg.array() creates function with expected methods', () => {
-      const arrayOps = pg.array(eb.ref('tags'))
+      const arrayOps = pg(eb).array('tags')
 
       expect(typeof arrayOps.hasAllOf).toBe('function')
       expect(typeof arrayOps.hasAnyOf).toBe('function')
@@ -20,9 +20,9 @@ describe('Array API', () => {
     })
 
     test('typed arrays maintain type information', () => {
-      const stringArray = pg.array<string>(eb.ref('tags'))
-      const numberArray = pg.array<number>(eb.ref('scores'))
-      const booleanArray = pg.array<boolean>(eb.ref('flags'))
+      const stringArray = pg(eb).array<string>('tags')
+      const numberArray = pg(eb).array<number>('scores')
+      const booleanArray = pg(eb).array<boolean>('flags')
 
       expect(typeof stringArray.hasAllOf).toBe('function')
       expect(typeof numberArray.hasAllOf).toBe('function')
@@ -34,17 +34,17 @@ describe('Array API', () => {
     })
 
     test('works with different column name formats', () => {
-      expect(() => pg.array(eb.ref('tags'))).not.toThrow()
-      expect(() => pg.array(eb.ref('products.tags'))).not.toThrow()
-      expect(() => pg.array(eb.ref('p.categories'))).not.toThrow()
-      expect(() => pg.array(eb.ref('"quoted_column"'))).not.toThrow()
-      expect(() => pg.array(eb.ref('schema.table.column'))).not.toThrow()
+      expect(() => pg(eb).array('tags')).not.toThrow()
+      expect(() => pg(eb).array('products.tags')).not.toThrow()
+      expect(() => pg(eb).array('p.categories')).not.toThrow()
+      expect(() => pg(eb).array('"quoted_column"')).not.toThrow()
+      expect(() => pg(eb).array('schema.table.column')).not.toThrow()
     })
   })
 
   describe('Method calls and parameters', () => {
     test('hasAllOf() accepts arrays', () => {
-      const arrayOps = pg.array(eb.ref('tags'))
+      const arrayOps = pg(eb).array('tags')
 
       expect(() => arrayOps.hasAllOf(['typescript', 'javascript'])).not.toThrow()
       expect(() => arrayOps.hasAllOf([])).not.toThrow()
@@ -52,7 +52,7 @@ describe('Array API', () => {
     })
 
     test('hasAnyOf() accepts arrays', () => {
-      const arrayOps = pg.array(eb.ref('categories'))
+      const arrayOps = pg(eb).array('categories')
 
       expect(() => arrayOps.hasAnyOf(['tech', 'ai'])).not.toThrow()
       expect(() => arrayOps.hasAnyOf([])).not.toThrow()
@@ -60,19 +60,19 @@ describe('Array API', () => {
     })
 
     test('length() requires no parameters', () => {
-      const arrayOps = pg.array(eb.ref('items'))
+      const arrayOps = pg(eb).array('items')
 
       expect(() => arrayOps.length()).not.toThrow()
     })
 
     test('first() requires no parameters', () => {
-      const arrayOps = pg.array(eb.ref('queue'))
+      const arrayOps = pg(eb).array('queue')
 
       expect(() => arrayOps.first()).not.toThrow()
     })
 
     test('last() requires no parameters', () => {
-      const arrayOps = pg.array(eb.ref('stack'))
+      const arrayOps = pg(eb).array('stack')
 
       expect(() => arrayOps.last()).not.toThrow()
     })
@@ -80,7 +80,7 @@ describe('Array API', () => {
 
   describe('Type safety with different data types', () => {
     test('string arrays work with string values', () => {
-      const stringOps = pg.array<string>(eb.ref('string_tags'))
+      const stringOps = pg(eb).array<string>('string_tags')
 
       expect(() => {
         stringOps.hasAllOf(['a', 'b', 'c'])
@@ -89,7 +89,7 @@ describe('Array API', () => {
     })
 
     test('number arrays work with number values', () => {
-      const numberOps = pg.array<number>(eb.ref('scores'))
+      const numberOps = pg(eb).array<number>('scores')
 
       expect(() => {
         numberOps.hasAllOf([1, 2, 3])
@@ -98,7 +98,7 @@ describe('Array API', () => {
     })
 
     test('boolean arrays work with boolean values', () => {
-      const booleanOps = pg.array<boolean>(eb.ref('flags'))
+      const booleanOps = pg(eb).array<boolean>('flags')
 
       expect(() => {
         booleanOps.hasAllOf([true, false])
@@ -109,7 +109,7 @@ describe('Array API', () => {
 
   describe('Edge cases and special values', () => {
     test('handles empty arrays', () => {
-      const arrayOps = pg.array(eb.ref('tags'))
+      const arrayOps = pg(eb).array('tags')
 
       expect(() => {
         arrayOps.hasAllOf([])
@@ -118,7 +118,7 @@ describe('Array API', () => {
     })
 
     test('handles single element arrays', () => {
-      const arrayOps = pg.array(eb.ref('tags'))
+      const arrayOps = pg(eb).array('tags')
 
       expect(() => {
         arrayOps.hasAllOf(['single'])
@@ -127,7 +127,7 @@ describe('Array API', () => {
     })
 
     test('handles large arrays', () => {
-      const arrayOps = pg.array(eb.ref('items'))
+      const arrayOps = pg(eb).array('items')
       const largeArray = Array.from({length: 100}, (_, i) => `item${i}`)
 
       expect(() => {
@@ -137,7 +137,7 @@ describe('Array API', () => {
     })
 
     test('handles special characters in values', () => {
-      const arrayOps = pg.array(eb.ref('tags'))
+      const arrayOps = pg(eb).array('tags')
 
       expect(() => {
         arrayOps.hasAllOf(['tag"with"quotes', 'tag\\with\\backslashes'])
@@ -146,7 +146,7 @@ describe('Array API', () => {
     })
 
     test('handles empty strings', () => {
-      const arrayOps = pg.array(eb.ref('tags'))
+      const arrayOps = pg(eb).array('tags')
 
       expect(() => {
         arrayOps.hasAllOf(['', 'non-empty'])
@@ -157,7 +157,7 @@ describe('Array API', () => {
 
   describe('Method chaining compatibility', () => {
     test('methods return expressions that can be used in queries', () => {
-      const arrayOps = pg.array(eb.ref('tags'))
+      const arrayOps = pg(eb).array('tags')
 
       const hasAllOfExpr = arrayOps.hasAllOf(['a', 'b'])
       const hasAnyOfExpr = arrayOps.hasAnyOf(['x', 'y'])
@@ -179,7 +179,7 @@ describe('Array API', () => {
     })
 
     test('multiple operations can be created from same array instance', () => {
-      const arrayOps = pg.array(eb.ref('tags'))
+      const arrayOps = pg(eb).array('tags')
 
       expect(() => {
         const expr1 = arrayOps.hasAllOf(['first'])
@@ -196,33 +196,33 @@ describe('Array API', () => {
   describe('Column reference variations', () => {
     test('handles simple column names', () => {
       expect(() => {
-        pg.array(eb.ref('tags')).hasAllOf(['test'])
-        pg.array(eb.ref('categories')).length()
-        pg.array(eb.ref('scores')).first()
+        pg(eb).array('tags').hasAllOf(['test'])
+        pg(eb).array('categories').length()
+        pg(eb).array('scores').first()
       }).not.toThrow()
     })
 
     test('handles qualified column names', () => {
       expect(() => {
-        pg.array(eb.ref('products.tags')).hasAllOf(['featured'])
-        pg.array(eb.ref('user.preferences')).hasAnyOf(['dark_mode'])
-        pg.array(eb.ref('order.items')).hasAnyOf(['item1', 'item2', 'item3'])
+        pg(eb).array('products.tags').hasAllOf(['featured'])
+        pg(eb).array('user.preferences').hasAnyOf(['dark_mode'])
+        pg(eb).array('order.items').hasAnyOf(['item1', 'item2', 'item3'])
       }).not.toThrow()
     })
 
     test('handles aliased table columns', () => {
       expect(() => {
-        pg.array(eb.ref('p.categories')).hasAnyOf(['electronics'])
-        pg.array(eb.ref('u.roles')).hasAllOf(['admin', 'user'])
-        pg.array(eb.ref('o.statuses')).length()
+        pg(eb).array('p.categories').hasAnyOf(['electronics'])
+        pg(eb).array('u.roles').hasAllOf(['admin', 'user'])
+        pg(eb).array('o.statuses').length()
       }).not.toThrow()
     })
 
     test('handles quoted identifiers', () => {
       expect(() => {
-        pg.array(eb.ref('"quoted_column"')).hasAllOf(['value'])
-        pg.array(eb.ref('"table"."column"')).hasAnyOf(['items'])
-        pg.array(eb.ref('"schema"."table"."column"')).length()
+        pg(eb).array('"quoted_column"').hasAllOf(['value'])
+        pg(eb).array('"table"."column"').hasAnyOf(['items'])
+        pg(eb).array('"schema"."table"."column"').length()
       }).not.toThrow()
     })
   })

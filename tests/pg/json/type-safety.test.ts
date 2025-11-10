@@ -67,9 +67,9 @@ describe('JSON Type Safety', () => {
       } as any
 
       // These should work after fix
-      const metadataOp = pg.json(eb.ref('products.metadata'))
-      const configOp = pg.json(eb.ref('products.config'))
-      const profileOp = pg.json(eb.ref('users.profile'))
+      const metadataOp = pg(eb).json('products.metadata')
+      const configOp = pg(eb).json('products.config')
+      const profileOp = pg(eb).json('users.profile')
 
       expect(metadataOp).toBeDefined()
       expect(configOp).toBeDefined()
@@ -79,7 +79,7 @@ describe('JSON Type Safety', () => {
     test('should provide operations on valid references', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
-      const metadataOp = pg.json(eb.ref('products.metadata'))
+      const metadataOp = pg(eb).json('products.metadata')
       const result = metadataOp.path('theme')
 
       expect(result).toBeDefined()
@@ -92,10 +92,10 @@ describe('JSON Type Safety', () => {
 
       // Currently compiles but shouldn't - 'name' is string, not json
       // @ts-expect-error - After fix: should error because 'name' is not json
-      const nameOp = pg.json(eb.ref('products.name'))
+      const nameOp = pg(eb).json('products.name')
 
       // @ts-expect-error - After fix: should error because 'email' is not json
-      const emailOp = pg.json(eb.ref('users.email'))
+      const emailOp = pg(eb).json('users.email')
 
       expect(nameOp).toBeDefined()
       expect(emailOp).toBeDefined()
@@ -105,7 +105,7 @@ describe('JSON Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
       // @ts-expect-error - After fix: should error because 'id' is number, not json
-      const idOp = pg.json(eb.ref('products.id'))
+      const idOp = pg(eb).json('products.id')
 
       expect(idOp).toBeDefined()
     })
@@ -114,7 +114,7 @@ describe('JSON Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
       // @ts-expect-error - After fix: should error because 'tags' is array, not json object
-      const tagsOp = pg.json(eb.ref('products.tags'))
+      const tagsOp = pg(eb).json('products.tags')
 
       expect(tagsOp).toBeDefined()
     })
@@ -124,7 +124,7 @@ describe('JSON Type Safety', () => {
     test('should work with Record<string, any> types', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
-      const metadataOp = pg.json(eb.ref('products.metadata'))
+      const metadataOp = pg(eb).json('products.metadata')
       const result = metadataOp.path('key')
 
       expect(result).toBeDefined()
@@ -133,7 +133,7 @@ describe('JSON Type Safety', () => {
     test('should work with specific object types', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
-      const configOp = pg.json(eb.ref('products.config'))
+      const configOp = pg(eb).json('products.config')
       const result = configOp.path('theme')
 
       expect(result).toBeDefined()

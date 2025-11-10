@@ -111,7 +111,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['typescript']))
+        .where((eb) => pg(eb).array('tags').hasAllOf(['typescript']))
         .execute()
 
       expect(results).toBeDefined()
@@ -128,7 +128,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['tutorial', 'programming']))
+        .where((eb) => pg(eb).array('tags').hasAllOf(['tutorial', 'programming']))
         .execute()
 
       expect(results).toBeDefined()
@@ -145,7 +145,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'categories'])
-        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['education', 'electronics']))
+        .where((eb) => pg(eb).array('categories').hasAnyOf(['education', 'electronics']))
         .execute()
 
       expect(results).toBeDefined()
@@ -166,9 +166,9 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           'id',
           'name',
           'tags',
-          pg.array(eb.ref('tags')).length().as('tag_count')
+          pg(eb).array('tags').length().as('tag_count')
         ])
-        .where((eb) => pg.array(eb.ref('tags')).length(), '>', 3)
+        .where((eb) => pg(eb).array('tags').length(), '>', 3)
         .execute()
 
       expect(results).toBeDefined()
@@ -187,11 +187,11 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           'name',
           'tags',
           'categories',
-          pg.array(eb.ref('tags')).length().as('tag_count')
+          pg(eb).array('tags').length().as('tag_count')
         ])
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['tutorial']))
-        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['education']))
-        .where((eb) => pg.array(eb.ref('tags')).length(), '>=', 3)
+        .where((eb) => pg(eb).array('tags').hasAllOf(['tutorial']))
+        .where((eb) => pg(eb).array('categories').hasAnyOf(['education']))
+        .where((eb) => pg(eb).array('tags').length(), '>=', 3)
         .orderBy('name')
         .execute()
 
@@ -210,7 +210,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).path('difficulty').equals('beginner'))
+        .where((eb) => pg(eb).json('metadata').path('difficulty').equals('beginner'))
         .execute()
 
       expect(results).toBeDefined()
@@ -227,9 +227,9 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
         .select((eb) => [
           'id',
           'name',
-          pg.json(eb.ref('preferences')).path('theme').asText().as('theme')
+          pg(eb).json('preferences').path('theme').asText().as('theme')
         ])
-        .where((eb) => pg.json(eb.ref('preferences')).path('theme').asText().equals('dark'))
+        .where((eb) => pg(eb).json('preferences').path('theme').asText().equals('dark'))
         .execute()
 
       expect(results).toBeDefined()
@@ -243,7 +243,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('documents')
         .select(['id', 'title', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).contains({published: true}))
+        .where((eb) => pg(eb).json('metadata').contains({published: true}))
         .execute()
 
       expect(results).toBeDefined()
@@ -258,7 +258,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).hasKey('ai_related'))
+        .where((eb) => pg(eb).json('metadata').hasKey('ai_related'))
         .execute()
 
       expect(results).toBeDefined()
@@ -272,7 +272,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'permissions'])
-        .where((eb) => pg.json(eb.ref('permissions')).hasAllKeys(['read', 'write']))
+        .where((eb) => pg(eb).json('permissions').hasAllKeys(['read', 'write']))
         .execute()
 
       expect(results).toBeDefined()
@@ -287,7 +287,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'preferences'])
-        .where((eb) => pg.json(eb.ref('preferences')).path(['notifications', 'email']).equals(true))
+        .where((eb) => pg(eb).json('preferences').path(['notifications', 'email']).equals(true))
         .execute()
 
       expect(results).toBeDefined()
@@ -319,7 +319,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           .select((eb) => [
             'id',
             'content',
-            pg.vector(eb.ref('embedding')).distance(searchVector).as('distance')
+            pg(eb).vector('embedding').distance(searchVector).as('distance')
           ])
           .orderBy('distance')
           .limit(3)
@@ -344,7 +344,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
         const results = await db
           .selectFrom('document_embeddings' as any)
           .select(['id', 'content', 'embedding'])
-          .where((eb) => pg.vector(eb.ref('embedding')).similarTo(searchVector, 0.9))
+          .where((eb) => pg(eb).vector('embedding').similarTo(searchVector, 0.9))
           .execute()
 
         expect(results).toBeDefined()
@@ -362,7 +362,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           .select((eb) => [
             'id',
             'content',
-            pg.vector(eb.ref('embedding')).dimensions().as('dims')
+            pg(eb).vector('embedding').dimensions().as('dims')
           ])
           .limit(1)
           .execute()
@@ -386,12 +386,12 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           'name',
           'tags',
           'metadata',
-          pg.array(eb.ref('tags')).length().as('tag_count'),
-          pg.json(eb.ref('metadata')).path('difficulty').asText().as('difficulty')
+          pg(eb).array('tags').length().as('tag_count'),
+          pg(eb).json('metadata').path('difficulty').asText().as('difficulty')
         ])
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['tutorial']))
-        .where((eb) => pg.json(eb.ref('metadata')).path('difficulty').equals('beginner'))
-        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['education']))
+        .where((eb) => pg(eb).array('tags').hasAllOf(['tutorial']))
+        .where((eb) => pg(eb).json('metadata').path('difficulty').equals('beginner'))
+        .where((eb) => pg(eb).array('categories').hasAnyOf(['education']))
         .execute()
 
       expect(results).toBeDefined()
@@ -416,13 +416,13 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           'categories',
           'prices',
           'metadata',
-          pg.array(eb.ref('tags')).length().as('tag_count'),
-          pg.json(eb.ref('metadata')).path('difficulty').asText().as('difficulty'),
-          pg.json(eb.ref('metadata')).path('rating').asText().as('rating')
+          pg(eb).array('tags').length().as('tag_count'),
+          pg(eb).json('metadata').path('difficulty').asText().as('difficulty'),
+          pg(eb).json('metadata').path('rating').asText().as('rating')
         ])
-        .where((eb) => pg.array(eb.ref('tags')).hasAnyOf(userInterests))
-        .where((eb) => pg.json(eb.ref('metadata')).hasKey('difficulty'))
-        .where((eb) => pg.array(eb.ref('tags')).length(), '>=', 3)
+        .where((eb) => pg(eb).array('tags').hasAnyOf(userInterests))
+        .where((eb) => pg(eb).json('metadata').hasKey('difficulty'))
+        .where((eb) => pg(eb).array('tags').length(), '>=', 3)
         .orderBy('rating', 'desc')
         .limit(10)
         .execute()
@@ -449,13 +449,13 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
           'id',
           'name',
           'roles',
-          pg.json(eb.ref('preferences')).path('theme').asText().as('theme'),
-          pg.json(eb.ref('preferences')).path(['notifications', 'email']).asText().as('email_notifications'),
-          pg.array(eb.ref('roles')).length().as('role_count')
+          pg(eb).json('preferences').path('theme').asText().as('theme'),
+          pg(eb).json('preferences').path(['notifications', 'email']).asText().as('email_notifications'),
+          pg(eb).array('roles').length().as('role_count')
         ])
-        .where((eb) => pg.array(eb.ref('roles')).hasAllOf(['user']))
-        .where((eb) => pg.json(eb.ref('permissions')).path('read').equals(true))
-        .where((eb) => pg.json(eb.ref('preferences')).hasKey('theme'))
+        .where((eb) => pg(eb).array('roles').hasAllOf(['user']))
+        .where((eb) => pg(eb).json('permissions').path('read').equals(true))
+        .where((eb) => pg(eb).json('preferences').hasKey('theme'))
         .orderBy('name')
         .execute()
 
@@ -478,7 +478,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name'])
-        .where((eb) => pg.array(eb.ref('tags')).hasAnyOf(largeTagArray))
+        .where((eb) => pg(eb).array('tags').hasAnyOf(largeTagArray))
         .execute()
 
       expect(results).toBeDefined()
@@ -489,7 +489,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'tags'])
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf([]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([]))
         .execute()
 
       expect(results).toBeDefined()
@@ -505,7 +505,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'preferences'])
-        .where((eb) => pg.json(eb.ref('preferences')).contains(complexFilter))
+        .where((eb) => pg(eb).json('preferences').contains(complexFilter))
         .execute()
 
       expect(results).toBeDefined()
@@ -523,7 +523,7 @@ describe('Integration Tests - Real PostgreSQL Database', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name'])
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf([maliciousInput]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([maliciousInput]))
         .execute()
 
       expect(results).toBeDefined()

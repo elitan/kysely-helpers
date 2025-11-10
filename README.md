@@ -30,18 +30,18 @@ const db = new Kysely<Database>({
   }),
 });
 
-// PostgreSQL-specific operations
+// Type-safe PostgreSQL operations with pg(eb)
 const results = await db
   .selectFrom("documents")
   .select((eb) => [
     "id",
     "title",
-    pg.array(eb.ref("tags")).length().as("tag_count"),
-    pg.json(eb.ref("metadata")).path("author").asText().as("author"),
+    pg(eb).array("tags").length().as("tag_count"),
+    pg(eb).json("metadata").path("author").asText().as("author"),
   ])
-  .where((eb) => pg.array(eb.ref("tags")).hasAllOf(["typescript"])) // tags @> ARRAY['typescript']
-  .where((eb) => pg.json(eb.ref("metadata")).path("published").equals(true)) // metadata#>'{"published"}' = true
-  .where((eb) => pg.vector(eb.ref("embedding")).similarity(searchVector), '>', 0.8)
+  .where((eb) => pg(eb).array("tags").hasAllOf(["typescript"])) // tags @> ARRAY['typescript']
+  .where((eb) => pg(eb).json("metadata").path("published").equals(true)) // metadata#>'{"published"}' = true
+  .where((eb) => pg(eb).vector("embedding").similarity(searchVector), '>', 0.8)
   .orderBy("tag_count", "desc")
   .execute();
 ```
@@ -54,34 +54,34 @@ Work with PostgreSQL arrays like JavaScript arrays, but with database-level perf
 import { pg } from 'kysely-helpers'
 
 // Query operations - Array contains all specified values
-.where((eb) => pg.array(eb.ref('tags')).hasAllOf(['featured']))
-.where((eb) => pg.array(eb.ref('tags')).hasAllOf(['ai', 'ml']))
+.where((eb) => pg(eb).array('tags').hasAllOf(['featured']))
+.where((eb) => pg(eb).array('tags').hasAllOf(['ai', 'ml']))
 
 // Array contains any of the specified values
-.where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['tech', 'ai']))
+.where((eb) => pg(eb).array('categories').hasAnyOf(['tech', 'ai']))
 
 // Array length and element access
-.where((eb) => pg.array(eb.ref('items')).length(), '>', 5)
-.select((eb) => [pg.array(eb.ref('tags')).first().as('first_tag')])
-.select((eb) => [pg.array(eb.ref('tags')).last().as('last_tag')])
+.where((eb) => pg(eb).array('items').length(), '>', 5)
+.select((eb) => [pg(eb).array('tags').first().as('first_tag')])
+.select((eb) => [pg(eb).array('tags').last().as('last_tag')])
 
 // Update operations - Add elements
 await db.updateTable('products')
   .set((eb) => ({
-    tags: pg.array(eb.ref('tags')).append('new-tag')
+    tags: pg(eb).array('tags').append('new-tag')
   }))
   .set((eb) => ({
-    tags: pg.array(eb.ref('tags')).append(['tag1', 'tag2']),
-    priorities: pg.array(eb.ref('priorities')).prepend('urgent')
+    tags: pg(eb).array('tags').append(['tag1', 'tag2']),
+    priorities: pg(eb).array('priorities').prepend('urgent')
   }))
   .execute()
 
 // Remove elements
 await db.updateTable('products')
   .set((eb) => ({
-    tags: pg.array(eb.ref('tags')).remove('deprecated'),
-    queue: pg.array(eb.ref('queue')).removeFirst(),
-    stack: pg.array(eb.ref('stack')).removeLast()
+    tags: pg(eb).array('tags').remove('deprecated'),
+    queue: pg(eb).array('queue').removeFirst(),
+    stack: pg(eb).array('stack').removeLast()
   }))
   .execute()
 ```
@@ -94,23 +94,23 @@ Query and filter JSON data stored in your database without parsing it in your ap
 import { pg } from 'kysely-helpers'
 
 // Query operations - Path navigation and filtering
-.where((eb) => pg.json(eb.ref('metadata')).path('theme').equals('dark'))
-.where((eb) => pg.json(eb.ref('settings')).path('language').asText().equals('en'))
-.where((eb) => pg.json(eb.ref('data')).path(['user', 'preferences']).contains({notifications: true}))
+.where((eb) => pg(eb).json('metadata').path('theme').equals('dark'))
+.where((eb) => pg(eb).json('settings').path('language').asText().equals('en'))
+.where((eb) => pg(eb).json('data').path(['user', 'preferences']).contains({notifications: true}))
 
 // Key and value checks
-.where((eb) => pg.json(eb.ref('profile')).contains({verified: true}))
-.where((eb) => pg.json(eb.ref('permissions')).hasKey('admin'))
-.where((eb) => pg.json(eb.ref('metadata')).hasAllKeys(['title', 'author']))
+.where((eb) => pg(eb).json('profile').contains({verified: true}))
+.where((eb) => pg(eb).json('permissions').hasKey('admin'))
+.where((eb) => pg(eb).json('metadata').hasAllKeys(['title', 'author']))
 
 // Update operations - Set, increment, remove, and push operations
 await db.updateTable('users')
   .set((eb) => ({
-    metadata: pg.json(eb.ref('metadata')).set('theme', 'dark'),
-    settings: pg.json(eb.ref('settings')).set(['user', 'preferences', 'lang'], 'es'),
-    stats: pg.json(eb.ref('stats')).increment('points', 10),
-    cache: pg.json(eb.ref('cache')).remove('temp_data'),
-    tags: pg.json(eb.ref('tags')).push('premium')
+    metadata: pg(eb).json('metadata').set('theme', 'dark'),
+    settings: pg(eb).json('settings').set(['user', 'preferences', 'lang'], 'es'),
+    stats: pg(eb).json('stats').increment('points', 10),
+    cache: pg(eb).json('cache').remove('temp_data'),
+    tags: pg(eb).json('tags').push('premium')
   }))
   .where('id', '=', userId)
   .execute()
@@ -145,18 +145,18 @@ const results = await db
     "id",
     "title",
     "content",
-    pg.vector(eb.ref("embedding")).similarity(searchVector).as("similarity")
+    pg(eb).vector("embedding").similarity(searchVector).as("similarity")
   ])
-  .where((eb) => pg.vector(eb.ref("embedding")).similarity(searchVector), '>', 0.8)
+  .where((eb) => pg(eb).vector("embedding").similarity(searchVector), '>', 0.8)
   .orderBy("similarity", "desc")
   .limit(10)
   .execute()
 
 // Different similarity algorithms: 'cosine' (default), 'euclidean', 'dot'
-.where((eb) => pg.vector(eb.ref("embedding")).similarity(searchVector, 'cosine'), '>', 0.8)
+.where((eb) => pg(eb).vector("embedding").similarity(searchVector, 'cosine'), '>', 0.8)
 
 // Convert vectors back to JavaScript arrays
-.select((eb) => ["id", "title", pg.vector(eb.ref("embedding")).toArray().as("embedding")])
+.select((eb) => ["id", "title", pg(eb).vector("embedding").toArray().as("embedding")])
 ```
 
 **Key features:** `pg.embedding()` for insertion, `pg.vector().similarity()` for search, `pg.vector().toArray()` for conversion. AI-native design for OpenAI, Anthropic, and other embedding providers.

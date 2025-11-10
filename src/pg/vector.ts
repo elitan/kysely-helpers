@@ -89,40 +89,10 @@ export function embedding(embedding: number[]): RawBuilder<any> {
 }
 
 /**
- * Create PostgreSQL vector operations for a column using Kysely expression references
- *
- * This function provides type-safe vector operations that integrate seamlessly with Kysely's
- * query builder. It requires using the expression builder pattern (eb.ref()) to ensure
- * compile-time validation of column names and types.
- *
- * @param column Expression reference from Kysely's expression builder (must be a vector/number[] column)
- * @returns Vector operations builder
- *
- * @example
- * ```ts
- * import { pg } from 'kysely-helpers'
- *
- * // Semantic search with type safety
- * const searchEmbedding = await openai.embeddings.create({
- *   model: "text-embedding-3-small",
- *   input: userQuery
- * })
- *
- * const results = await db
- *   .selectFrom('documents')
- *   .select((eb) => [
- *     'id',
- *     'title',
- *     pg.vector(eb.ref('embedding')).similarity(searchEmbedding.data[0].embedding).as('similarity')
- *   ])
- *   .where((eb) => pg.vector(eb.ref('embedding')).similarity(searchEmbedding.data[0].embedding), '>', 0.8)
- *   .orderBy('similarity', 'desc')
- *   .limit(10)
- *   .execute()
- * ```
+ * Internal: Create vector operations from a column reference
+ * Used by both simple API and type-safe pg(eb) pattern
  */
-export function vector(column: SimpleReferenceExpression<any, any>): VectorOperations {
-  const columnRef = column
+export function createVectorOperations(columnRef: any): VectorOperations {
 
   return {
     toArray: () => {
@@ -151,4 +121,17 @@ export function vector(column: SimpleReferenceExpression<any, any>): VectorOpera
       }
     }
   }
+}
+
+/**
+ * Create PostgreSQL vector operations for a column (simple API)
+ *
+ * For quick prototyping. For type-safe column validation, use pg(eb).vector()
+ *
+ * @param column Column name as string
+ * @returns Vector operations builder
+ */
+export function vector(column: string): VectorOperations {
+  const columnRef = sql.ref(column)
+  return createVectorOperations(columnRef)
 }

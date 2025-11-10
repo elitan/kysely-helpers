@@ -59,7 +59,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['typescript', 'postgres']))
+        .where((eb) => pg(eb).array('tags').hasAllOf(['typescript', 'postgres']))
       
       const compiled = query.compile()
       
@@ -74,7 +74,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('products.tags')).hasAllOf(['featured', 'popular']))
+        .where((eb) => pg(eb).array('products.tags').hasAllOf(['featured', 'popular']))
       
       const compiled = query.compile()
       
@@ -86,7 +86,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products as p')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('p.tags')).hasAllOf(['featured', 'trending']))
+        .where((eb) => pg(eb).array('p.tags').hasAllOf(['featured', 'trending']))
       
       const compiled = query.compile()
       
@@ -99,7 +99,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(specialValues))
+        .where((eb) => pg(eb).array('tags').hasAllOf(specialValues))
       
       const compiled = query.compile()
       
@@ -111,7 +111,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array<number>(eb.ref('scores')).hasAllOf([95, 100]))
+        .where((eb) => pg(eb).array<number>('scores').hasAllOf([95, 100]))
       
       const compiled = query.compile()
       
@@ -124,7 +124,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array<boolean>(eb.ref('flags')).hasAllOf([true, false]))
+        .where((eb) => pg(eb).array<boolean>('flags').hasAllOf([true, false]))
       
       const compiled = query.compile()
       
@@ -137,7 +137,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf([]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([]))
       
       const compiled = query.compile()
       
@@ -149,7 +149,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['single']))
+        .where((eb) => pg(eb).array('tags').hasAllOf(['single']))
       
       const compiled = query.compile()
       
@@ -162,7 +162,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(largeArray))
+        .where((eb) => pg(eb).array('tags').hasAllOf(largeArray))
       
       const compiled = query.compile()
       
@@ -179,7 +179,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['tech', 'ai']))
+        .where((eb) => pg(eb).array('categories').hasAnyOf(['tech', 'ai']))
       
       const compiled = query.compile()
       
@@ -193,7 +193,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf([]))
+        .where((eb) => pg(eb).array('categories').hasAnyOf([]))
       
       const compiled = query.compile()
       
@@ -205,7 +205,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['single']))
+        .where((eb) => pg(eb).array('categories').hasAnyOf(['single']))
       
       const compiled = query.compile()
       
@@ -220,7 +220,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).length(), '>', 3)
+        .where((eb) => pg(eb).array('tags').length(), '>', 3)
       
       const compiled = query.compile()
       
@@ -234,7 +234,7 @@ describe('Array SQL Generation', () => {
         .select([
           'id',
           'name',
-          (eb) => pg.array(eb.ref('tags')).length().as('tag_count')
+          (eb) => pg(eb).array('tags').length().as('tag_count')
         ])
       
       const compiled = query.compile()
@@ -246,7 +246,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('products.tags')).length(), '>=', 2)
+        .where((eb) => pg(eb).array('products.tags').length(), '>=', 2)
       
       const compiled = query.compile()
       
@@ -258,7 +258,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .orderBy((eb) => pg.array(eb.ref('tags')).length(), 'desc')
+        .orderBy((eb) => pg(eb).array('tags').length(), 'desc')
       
       const compiled = query.compile()
       
@@ -274,11 +274,11 @@ describe('Array SQL Generation', () => {
         .select([
           'id',
           'name',
-          (eb) => pg.array(eb.ref('tags')).length().as('tag_count')
+          (eb) => pg(eb).array('tags').length().as('tag_count')
         ])
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['featured']))
-        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['electronics', 'gadgets']))
-        .where((eb) => pg.array(eb.ref('tags')).length(), '>', 2)
+        .where((eb) => pg(eb).array('tags').hasAllOf(['featured']))
+        .where((eb) => pg(eb).array('categories').hasAnyOf(['electronics', 'gadgets']))
+        .where((eb) => pg(eb).array('tags').length(), '>', 2)
         .orderBy('name')
         .limit(20)
       
@@ -305,10 +305,10 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['typescript', 'postgres']))
+        .where((eb) => pg(eb).array('tags').hasAllOf(['typescript', 'postgres']))
         .where('id', '>', 100)
         .where('name', 'like', '%tutorial%')
-        .where((eb) => pg.array(eb.ref('categories')).hasAnyOf(['tech', 'education']))
+        .where((eb) => pg(eb).array('categories').hasAnyOf(['tech', 'education']))
       
       const compiled = query.compile()
       
@@ -329,13 +329,13 @@ describe('Array SQL Generation', () => {
       const subquery = db
         .selectFrom('users')
         .select('id')
-        .where((eb) => pg.array(eb.ref('roles')).hasAllOf(['admin']))
+        .where((eb) => pg(eb).array('roles').hasAllOf(['admin']))
       
       const query = db
         .selectFrom('products')
         .selectAll()
         .where('created_by', 'in', subquery)
-        .where((eb) => pg.array(eb.ref('tags')).hasAnyOf(['internal', 'restricted']))
+        .where((eb) => pg(eb).array('tags').hasAnyOf(['internal', 'restricted']))
       
       const compiled = query.compile()
       
@@ -352,7 +352,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['test']))
+        .where((eb) => pg(eb).array('tags').hasAllOf(['test']))
       
       const compiled = query.compile()
       
@@ -367,7 +367,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).hasAnyOf(values))
+        .where((eb) => pg(eb).array('tags').hasAnyOf(values))
       
       const compiled = query.compile()
       
@@ -382,7 +382,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf([]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([]))
       
       const compiled = query.compile()
       
@@ -395,7 +395,7 @@ describe('Array SQL Generation', () => {
     test('append() single value generates array_append', () => {
       const query = db
         .updateTable('products')
-        .set((eb) => ({ tags: pg.array(eb.ref('tags')).append('new-tag') }))
+        .set((eb) => ({ tags: pg(eb).array('tags').append('new-tag') }))
         .where('id', '=', 1)
       
       const compiled = query.compile()
@@ -407,7 +407,7 @@ describe('Array SQL Generation', () => {
     test('append() multiple values generates array concatenation', () => {
       const query = db
         .updateTable('products')
-        .set((eb) => ({ tags: pg.array(eb.ref('tags')).append(['tag1', 'tag2']) }))
+        .set((eb) => ({ tags: pg(eb).array('tags').append(['tag1', 'tag2']) }))
         .where('id', '=', 1)
       
       const compiled = query.compile()
@@ -420,7 +420,7 @@ describe('Array SQL Generation', () => {
     test('prepend() single value generates array_prepend', () => {
       const query = db
         .updateTable('products')
-        .set((eb) => ({ tags: pg.array(eb.ref('tags')).prepend('urgent') }))
+        .set((eb) => ({ tags: pg(eb).array('tags').prepend('urgent') }))
         .where('id', '=', 1)
       
       const compiled = query.compile()
@@ -432,7 +432,7 @@ describe('Array SQL Generation', () => {
     test('prepend() multiple values generates array concatenation', () => {
       const query = db
         .updateTable('products')
-        .set((eb) => ({ tags: pg.array(eb.ref('tags')).prepend(['urgent', 'priority']) }))
+        .set((eb) => ({ tags: pg(eb).array('tags').prepend(['urgent', 'priority']) }))
         .where('id', '=', 1)
       
       const compiled = query.compile()
@@ -445,7 +445,7 @@ describe('Array SQL Generation', () => {
     test('remove() generates array_remove', () => {
       const query = db
         .updateTable('products')
-        .set((eb) => ({ tags: pg.array(eb.ref('tags')).remove('deprecated') }))
+        .set((eb) => ({ tags: pg(eb).array('tags').remove('deprecated') }))
         .where('id', '=', 1)
       
       const compiled = query.compile()
@@ -457,7 +457,7 @@ describe('Array SQL Generation', () => {
     test('removeFirst() generates array slice', () => {
       const query = db
         .updateTable('products')
-        .set((eb) => ({ tags: pg.array(eb.ref('tags')).removeFirst() }))
+        .set((eb) => ({ tags: pg(eb).array('tags').removeFirst() }))
         .where('id', '=', 1)
       
       const compiled = query.compile()
@@ -468,7 +468,7 @@ describe('Array SQL Generation', () => {
     test('removeLast() generates array slice', () => {
       const query = db
         .updateTable('products')
-        .set((eb) => ({ tags: pg.array(eb.ref('tags')).removeLast() }))
+        .set((eb) => ({ tags: pg(eb).array('tags').removeLast() }))
         .where('id', '=', 1)
       
       const compiled = query.compile()
@@ -479,7 +479,7 @@ describe('Array SQL Generation', () => {
     test('append() with empty array returns column unchanged', () => {
       const query = db
         .updateTable('products')
-        .set((eb) => ({ tags: pg.array(eb.ref('tags')).append([]) }))
+        .set((eb) => ({ tags: pg(eb).array('tags').append([]) }))
         .where('id', '=', 1)
       
       const compiled = query.compile()
@@ -490,7 +490,7 @@ describe('Array SQL Generation', () => {
     test('prepend() with empty array returns column unchanged', () => {
       const query = db
         .updateTable('products')
-        .set((eb) => ({ tags: pg.array(eb.ref('tags')).prepend([]) }))
+        .set((eb) => ({ tags: pg(eb).array('tags').prepend([]) }))
         .where('id', '=', 1)
       
       const compiled = query.compile()
@@ -501,7 +501,7 @@ describe('Array SQL Generation', () => {
     test('append() with number array uses correct typing', () => {
       const query = db
         .updateTable('products')
-        .set((eb) => ({ scores: pg.array<number>(eb.ref('scores')).append(95) }))
+        .set((eb) => ({ scores: pg(eb).array<number>('scores').append(95) }))
         .where('id', '=', 1)
       
       const compiled = query.compile()
@@ -517,7 +517,7 @@ describe('Array SQL Generation', () => {
         .selectFrom('products')
         .select([
           'id',
-          (eb) => pg.array(eb.ref('tags')).first().as('first_tag')
+          (eb) => pg(eb).array('tags').first().as('first_tag')
         ])
       
       const compiled = query.compile()
@@ -530,7 +530,7 @@ describe('Array SQL Generation', () => {
         .selectFrom('products')
         .select([
           'id',
-          (eb) => pg.array(eb.ref('tags')).last().as('last_tag')
+          (eb) => pg(eb).array('tags').last().as('last_tag')
         ])
       
       const compiled = query.compile()
@@ -542,7 +542,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).first(), '=', 'priority')
+        .where((eb) => pg(eb).array('tags').first(), '=', 'priority')
       
       const compiled = query.compile()
       
@@ -554,7 +554,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).last(), '=', 'final')
+        .where((eb) => pg(eb).array('tags').last(), '=', 'final')
       
       const compiled = query.compile()
       
@@ -568,7 +568,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['test']))
+        .where((eb) => pg(eb).array('tags').hasAllOf(['test']))
       
       const compiled = query.compile()
       
@@ -579,7 +579,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('products.tags')).hasAllOf(['test']))
+        .where((eb) => pg(eb).array('products.tags').hasAllOf(['test']))
       
       const compiled = query.compile()
       
@@ -590,7 +590,7 @@ describe('Array SQL Generation', () => {
       const query = db
         .selectFrom('products as p')
         .selectAll()
-        .where((eb) => pg.array(eb.ref('p.tags')).hasAllOf(['test']))
+        .where((eb) => pg(eb).array('p.tags').hasAllOf(['test']))
       
       const compiled = query.compile()
       

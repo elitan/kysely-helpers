@@ -146,37 +146,10 @@ export interface ArrayOperations<T> extends ArrayUpdateOperations<T> {
 }
 
 /**
- * Create PostgreSQL array operations for a column using Kysely expression references
- *
- * This function provides type-safe array operations that integrate seamlessly with Kysely's
- * query builder. It requires using the expression builder pattern (eb.ref()) to ensure
- * compile-time validation of column names and types.
- *
- * @param column Expression reference from Kysely's expression builder (must be an array column)
- * @returns Array operations builder with inferred element type
- *
- * @example
- * ```ts
- * import { pg } from 'kysely-helpers'
- *
- * // Type-safe array operations with expression builder
- * const results = await db
- *   .selectFrom('products')
- *   .where((eb) => pg.array(eb.ref('tags')).hasAllOf(['featured']))
- *   .where((eb) => pg.array(eb.ref('category_ids')).hasAllOf([1, 2, 3]))
- *   .execute()
- *
- * // Update operations
- * await db
- *   .updateTable('products')
- *   .set((eb) => ({
- *     tags: pg.array(eb.ref('tags')).append('new-tag')
- *   }))
- *   .execute()
- * ```
+ * Internal: Create array operations from a column reference
+ * Used by both simple API and type-safe pg(eb) pattern
  */
-export function array<T = string>(column: SimpleReferenceExpression<any, any>): ArrayOperations<T> {
-  const columnRef = column
+export function createArrayOperations<T = string>(columnRef: any): ArrayOperations<T> {
 
   // Helper function to determine PostgreSQL array type for casting
   const getArrayType = (values: T[]): string => {
@@ -257,4 +230,31 @@ export function array<T = string>(column: SimpleReferenceExpression<any, any>): 
       return sql<T | null>`${columnRef}[array_length(${columnRef}, 1)]`
     }
   }
+}
+
+/**
+ * Create PostgreSQL array operations for a column (simple API)
+ *
+ * For quick prototyping and simple use cases. For type-safe column validation,
+ * use the pg(eb).array() pattern instead.
+ *
+ * @param column Column name as string
+ * @returns Array operations builder
+ *
+ * @example
+ * ```ts
+ * import { pg } from 'kysely-helpers'
+ *
+ * // Simple API - no type safety for column names
+ * const results = await db
+ *   .selectFrom('products')
+ *   .where(pg.array('tags').hasAllOf(['featured']))
+ *   .execute()
+ * ```
+ *
+ * @see pg(eb).array() for type-safe column validation
+ */
+export function array<T = string>(column: string): ArrayOperations<T> {
+  const columnRef = sql.ref(column)
+  return createArrayOperations<T>(columnRef)
 }

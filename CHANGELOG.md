@@ -5,84 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2025-01-07
+## [1.0.0] - 2025-01-10
 
-### Breaking Changes
+### Added
 
-**Type-Safe API with Expression Builder Pattern**
+**Hybrid API: Type-Safe `pg(eb)` Pattern + Simple API**
 
-This release introduces full type safety for column parameters by requiring the use of Kysely's expression builder pattern. This ensures compile-time validation of column names and types.
+This release adds a new type-safe API while keeping the simple API for backwards compatibility.
 
-#### Migration Guide
+#### ✅ New: Type-Safe API with `pg(eb)`
 
-**Before (v0.x):**
 ```typescript
-// String column references (no type safety)
+// Column names validated at compile time
+.where((eb) => pg(eb).array('tags').hasAllOf(['featured']))
+.set((eb) => ({ metadata: pg(eb).json('metadata').set('theme', 'dark') }))
+```
+
+**Benefits:**
+- ✅ Column name validation
+- ✅ Column type checking
+- ✅ IDE autocomplete
+- ✅ Catches typos at compile time
+
+#### ⚡ Simple API (Still Works - No Breaking Changes)
+
+```typescript
+// Quick & easy, no type safety
 .where(pg.array('tags').hasAllOf(['featured']))
 .set({ metadata: pg.json('metadata').set('theme', 'dark') })
 ```
 
-**After (v1.0):**
+### Examples
+
+**Array operations:**
 ```typescript
-// Expression builder pattern (full type safety)
-.where((eb) => pg.array(eb.ref('tags')).hasAllOf(['featured']))
-.set((eb) => ({
-  metadata: pg.json(eb.ref('metadata')).set('theme', 'dark')
-}))
+// Type-safe
+.where((eb) => pg(eb).array('tags').hasAllOf(['typescript']))
+
+// Simple
+.where(pg.array('tags').hasAllOf(['typescript']))
 ```
 
-#### What Changed
-
-- **Removed**: String column parameter overloads from `pg.array()`, `pg.json()`, and `pg.vector()`
-- **Required**: All column references must now use `eb.ref()` from Kysely's expression builder
-- **Added**: Type-level validation that columns are the correct type (arrays for `pg.array()`, JSON for `pg.json()`, vectors for `pg.vector()`)
-- **Benefit**: TypeScript now catches invalid column names and wrong column types at compile time
-
-#### Why This Change?
-
-1. **Type Safety**: Prevents runtime errors by catching issues at compile time
-2. **Better DX**: Autocomplete for column names based on your database schema
-3. **Kysely Alignment**: Follows Kysely's recommended patterns for reusable helpers
-4. **Correctness**: Impossible to pass wrong column types (e.g., string column to `pg.array()`)
-
-#### Examples
-
-**Array Operations:**
+**JSON operations:**
 ```typescript
-// ✅ Correct - type-safe
-.where((eb) => pg.array(eb.ref('tags')).hasAllOf(['featured']))
+// Type-safe
+.where((eb) => pg(eb).json('metadata').path('theme').equals('dark'))
 
-// ❌ Compile error - 'name' is not an array
-.where((eb) => pg.array(eb.ref('name')).hasAllOf(['test']))
+// Simple
+.where(pg.json('metadata').path('theme').equals('dark'))
 ```
 
-**JSON Operations:**
+**Vector operations:**
 ```typescript
-// ✅ Correct - type-safe
-.where((eb) => pg.json(eb.ref('metadata')).path('theme').equals('dark'))
-.set((eb) => ({ metadata: pg.json(eb.ref('metadata')).set('key', 'value') }))
+// Type-safe
+.select((eb) => [pg(eb).vector('embedding').similarity(vec).as('score')])
+
+// Simple
+.select([pg.vector('embedding').similarity(vec).as('score')])
 ```
 
-**Vector Operations:**
-```typescript
-// ✅ Correct - type-safe
-.select((eb) => [
-  pg.vector(eb.ref('embedding')).similarity(searchVector).as('score')
-])
+### Migration
 
-// ❌ Compile error - 'title' is not a vector
-.select((eb) => [
-  pg.vector(eb.ref('title')).toArray()
-])
-```
+**No migration required!** The simple API continues to work. Adopt the type-safe API gradually:
 
-### Fixed
+1. Start using `pg(eb)` in new code
+2. Optionally migrate existing code over time
+3. Enjoy improved type safety and IDE support
 
-- Resolves issue #8: Type safety for column parameters
+### Technical Details
 
-### Notes
-
-This is a **major version** release due to breaking API changes. All users must update their code to use the expression builder pattern. The migration is straightforward and provides immediate benefits through improved type safety.
+- Added `pg()` function that accepts `ExpressionBuilder` and returns type-safe helpers
+- Refactored internals: `createArrayOperations()`, `createJsonOperations()`, `createVectorOperations()`
+- Simple API (`pg.array()`, `pg.json()`, `pg.vector()`) wraps the new internals
+- Function + namespace merge allows both patterns to coexist
+- Zero performance overhead - compiles to identical SQL
 
 ## [0.1.0] - Previous Release
 

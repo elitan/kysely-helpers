@@ -7,7 +7,7 @@ const eb = { ref: (col: string) => sql.ref(col) } as any
 describe('Vector Security Tests', () => {
   describe('SQL Injection Prevention', () => {
     test('vector values are properly serialized to prevent injection', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       // Vector values are numbers, not strings, so they cannot contain SQL injection
       const maliciousVector = [1, 2, 3] // Numbers can't contain SQL
@@ -28,7 +28,7 @@ describe('Vector Security Tests', () => {
 
       dangerousColumnNames.forEach(columnName => {
         expect(() => {
-          pg.vector(eb.ref(columnName)).similarity([1, 2, 3])
+          pg(eb).vector(columnName).similarity([1, 2, 3])
         }).not.toThrow()
       })
     })
@@ -51,7 +51,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('vector similarity methods handle numeric values safely', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       const testVector = [0.1, 0.2, 0.3]
       
       // All similarity methods should safely handle numeric input
@@ -65,7 +65,7 @@ describe('Vector Security Tests', () => {
 
   describe('Input Validation', () => {
     test('handles empty vectors safely', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       expect(() => {
         vectorOps.similarity([])
@@ -74,7 +74,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('handles single-element vectors safely', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       expect(() => {
         vectorOps.similarity([42])
@@ -83,7 +83,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('handles large vectors safely', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       const largeVector = Array.from({length: 10000}, (_, i) => i)
       
       expect(() => {
@@ -93,7 +93,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('handles vectors with extreme values safely', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       const extremeVector = [
         Number.MAX_SAFE_INTEGER,
         Number.MIN_SAFE_INTEGER,
@@ -114,7 +114,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('handles vectors with special numeric values', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       // Test NaN (should be handled gracefully)
       expect(() => {
@@ -143,7 +143,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('similarity methods only accept number arrays', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       expect(() => {
         vectorOps.similarity([1, 2, 3])
@@ -155,7 +155,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('algorithm parameter is properly validated', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       const testVector = [1, 2, 3]
       
       // Valid algorithms should work
@@ -175,7 +175,7 @@ describe('Vector Security Tests', () => {
 
   describe('Memory and Performance Safety', () => {
     test('handles reasonably large vectors without memory issues', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       // Test with OpenAI-sized vectors
       const openAIVector = Array.from({length: 1536}, (_, i) => i / 1536)
@@ -187,7 +187,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('handles high-dimensional vectors efficiently', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       // Test with very high-dimensional vector
       const highDimVector = Array.from({length: 4096}, (_, i) => Math.random())
@@ -212,7 +212,7 @@ describe('Vector Security Tests', () => {
 
   describe('Edge Cases', () => {
     test('handles zero-length vectors', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       expect(() => {
         vectorOps.similarity([])
@@ -221,7 +221,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('handles vectors with all zeros', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       const zeroVector = [0, 0, 0, 0, 0]
       
       expect(() => {
@@ -231,7 +231,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('handles vectors with identical values', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       const identicalVector = [1, 1, 1, 1, 1]
       
       expect(() => {
@@ -241,7 +241,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('handles precision edge cases', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       // Test with very small differences
       const preciseVector = [0.000000001, 0.000000002, 0.000000003]
@@ -255,7 +255,7 @@ describe('Vector Security Tests', () => {
 
   describe('Algorithm-Specific Security', () => {
     test('cosine similarity handles edge cases safely', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       // Test vectors that might cause issues with cosine similarity
       const testVectors = [
@@ -273,7 +273,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('euclidean similarity handles edge cases safely', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       // Test vectors that might cause issues with euclidean distance
       const testVectors = [
@@ -291,7 +291,7 @@ describe('Vector Security Tests', () => {
     })
 
     test('dot product similarity handles edge cases safely', () => {
-      const vectorOps = pg.vector(eb.ref('embedding'))
+      const vectorOps = pg(eb).vector('embedding')
       
       // Test vectors that might cause issues with dot product
       const testVectors = [

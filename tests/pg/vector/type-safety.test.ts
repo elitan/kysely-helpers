@@ -62,8 +62,8 @@ describe('Vector Type Safety', () => {
       } as any
 
       // These should work after fix
-      const embeddingOp = pg.vector(eb.ref('documents.embedding'))
-      const featureOp = pg.vector(eb.ref('images.feature_vector'))
+      const embeddingOp = pg(eb).vector('documents.embedding')
+      const featureOp = pg(eb).vector('images.feature_vector')
 
       expect(embeddingOp).toBeDefined()
       expect(featureOp).toBeDefined()
@@ -72,7 +72,7 @@ describe('Vector Type Safety', () => {
     test('should provide operations on valid references', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
-      const embeddingOp = pg.vector(eb.ref('documents.embedding'))
+      const embeddingOp = pg(eb).vector('documents.embedding')
       const result = embeddingOp.toArray()
 
       expect(result).toBeDefined()
@@ -82,7 +82,7 @@ describe('Vector Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
       const queryVector = [0.1, 0.2, 0.3]
 
-      const embeddingOp = pg.vector(eb.ref('documents.embedding'))
+      const embeddingOp = pg(eb).vector('documents.embedding')
       const result = embeddingOp.similarity(queryVector)
 
       expect(result).toBeDefined()
@@ -95,10 +95,10 @@ describe('Vector Type Safety', () => {
 
       // Currently compiles but shouldn't - 'title' is string, not vector
       // @ts-expect-error - After fix: should error because 'title' is not a vector
-      const titleOp = pg.vector(eb.ref('documents.title'))
+      const titleOp = pg(eb).vector('documents.title')
 
       // @ts-expect-error - After fix: should error because 'filename' is not a vector
-      const filenameOp = pg.vector(eb.ref('images.filename'))
+      const filenameOp = pg(eb).vector('images.filename')
 
       expect(titleOp).toBeDefined()
       expect(filenameOp).toBeDefined()
@@ -108,7 +108,7 @@ describe('Vector Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
       // @ts-expect-error - After fix: should error because 'id' is number, not vector
-      const idOp = pg.vector(eb.ref('documents.id'))
+      const idOp = pg(eb).vector('documents.id')
 
       expect(idOp).toBeDefined()
     })
@@ -117,7 +117,7 @@ describe('Vector Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
       // @ts-expect-error - After fix: should error because 'metadata' is json, not vector
-      const metadataOp = pg.vector(eb.ref('images.metadata'))
+      const metadataOp = pg(eb).vector('images.metadata')
 
       expect(metadataOp).toBeDefined()
     })
@@ -126,7 +126,7 @@ describe('Vector Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
       // @ts-expect-error - After fix: should error because 'tags' is string[], not number[]
-      const tagsOp = pg.vector(eb.ref('documents.tags'))
+      const tagsOp = pg(eb).vector('documents.tags')
 
       expect(tagsOp).toBeDefined()
     })
@@ -136,7 +136,7 @@ describe('Vector Type Safety', () => {
     test('should work with number[] types', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
-      const embeddingOp = pg.vector(eb.ref('documents.embedding'))
+      const embeddingOp = pg(eb).vector('documents.embedding')
       const result = embeddingOp.toArray()
 
       expect(result).toBeDefined()
@@ -146,7 +146,7 @@ describe('Vector Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
       const queryVector = [0.1, 0.2, 0.3, 0.4, 0.5]
 
-      const embeddingOp = pg.vector(eb.ref('documents.embedding'))
+      const embeddingOp = pg(eb).vector('documents.embedding')
       const result = embeddingOp.similarity(queryVector, 'cosine')
 
       expect(result).toBeDefined()

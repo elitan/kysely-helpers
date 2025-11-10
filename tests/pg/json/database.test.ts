@@ -106,7 +106,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).path('difficulty').equals('beginner'))
+        .where((eb) => pg(eb).json('metadata').path('difficulty').equals('beginner'))
         .execute()
 
       expect(results).toBeDefined()
@@ -125,9 +125,9 @@ describe('JSON Database Integration', () => {
         .select((eb) => [
           'id',
           'name',
-          pg.json(eb.ref('metadata')).path('difficulty').asText().as('difficulty_text')
+          pg(eb).json('metadata').path('difficulty').asText().as('difficulty_text')
         ])
-        .where((eb) => pg.json(eb.ref('metadata')).path('difficulty').asText().equals('advanced'))
+        .where((eb) => pg(eb).json('metadata').path('difficulty').asText().equals('advanced'))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -142,7 +142,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).path('ai_related').equals(true))
+        .where((eb) => pg(eb).json('metadata').path('ai_related').equals(true))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -157,7 +157,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).path('rating').equals(4.8))
+        .where((eb) => pg(eb).json('metadata').path('rating').equals(4.8))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -174,7 +174,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'preferences'])
-        .where((eb) => pg.json(eb.ref('preferences')).path(['notifications', 'email']).equals(true))
+        .where((eb) => pg(eb).json('preferences').path(['notifications', 'email']).equals(true))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -191,9 +191,9 @@ describe('JSON Database Integration', () => {
         .select((eb) => [
           'id',
           'name',
-          pg.json(eb.ref('preferences')).path(['theme']).asText().as('user_theme')
+          pg(eb).json('preferences').path(['theme']).asText().as('user_theme')
         ])
-        .where((eb) => pg.json(eb.ref('preferences')).path(['theme']).asText().equals('dark'))
+        .where((eb) => pg(eb).json('preferences').path(['theme']).asText().equals('dark'))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -208,7 +208,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'preferences'])
-        .where((eb) => pg.json(eb.ref('preferences')).path(['notifications', 'push']).equals(false))
+        .where((eb) => pg(eb).json('preferences').path(['notifications', 'push']).equals(false))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -225,7 +225,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'settings'])
-        .where((eb) => pg.json(eb.ref('settings')).contains({theme: 'dark'}))
+        .where((eb) => pg(eb).json('settings').contains({theme: 'dark'}))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -240,7 +240,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'preferences'])
-        .where((eb) => pg.json(eb.ref('preferences')).contains({notifications: {email: true}}))
+        .where((eb) => pg(eb).json('preferences').contains({notifications: {email: true}}))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -255,7 +255,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('documents')
         .select(['id', 'title', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).contains({published: true}))
+        .where((eb) => pg(eb).json('metadata').contains({published: true}))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -270,7 +270,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.json(eb.ref('metadata')).contains({nonexistent: 'value'}))
+        .where((eb) => pg(eb).json('metadata').contains({nonexistent: 'value'}))
         .execute()
 
       expect(results.length).toBe(0)
@@ -284,7 +284,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).hasKey('difficulty'))
+        .where((eb) => pg(eb).json('metadata').hasKey('difficulty'))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -299,7 +299,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.json(eb.ref('metadata')).hasKey('nonexistent_key'))
+        .where((eb) => pg(eb).json('metadata').hasKey('nonexistent_key'))
         .execute()
 
       expect(results.length).toBe(0)
@@ -311,7 +311,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'preferences'])
-        .where((eb) => pg.json(eb.ref('preferences')).hasKey('notifications'))
+        .where((eb) => pg(eb).json('preferences').hasKey('notifications'))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -328,7 +328,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).hasAllKeys(['difficulty', 'duration']))
+        .where((eb) => pg(eb).json('metadata').hasAllKeys(['difficulty', 'duration']))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -344,7 +344,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('users')
         .select(['id', 'name', 'preferences'])
-        .where((eb) => pg.json(eb.ref('preferences')).hasAllKeys(['theme']))
+        .where((eb) => pg(eb).json('preferences').hasAllKeys(['theme']))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -359,7 +359,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.json(eb.ref('metadata')).hasAllKeys(['difficulty', 'nonexistent']))
+        .where((eb) => pg(eb).json('metadata').hasAllKeys(['difficulty', 'nonexistent']))
         .execute()
 
       expect(results.length).toBe(0)
@@ -375,7 +375,7 @@ describe('JSON Database Integration', () => {
       const emptyKeyResults = await db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.json(eb.ref('metadata')).hasAllKeys([]))
+        .where((eb) => pg(eb).json('metadata').hasAllKeys([]))
         .execute()
 
       expect(emptyKeyResults.length).toBe(allProducts.length)
@@ -388,7 +388,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).hasAnyKey(['ai_related', 'experimental']))
+        .where((eb) => pg(eb).json('metadata').hasAnyKey(['ai_related', 'experimental']))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -405,7 +405,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.json(eb.ref('metadata')).hasAnyKey(['nonexistent1', 'nonexistent2']))
+        .where((eb) => pg(eb).json('metadata').hasAnyKey(['nonexistent1', 'nonexistent2']))
         .execute()
 
       expect(results.length).toBe(0)
@@ -416,7 +416,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .select(['id', 'name', 'metadata'])
-        .where((eb) => pg.json(eb.ref('metadata')).hasAnyKey(['difficulty']))
+        .where((eb) => pg(eb).json('metadata').hasAnyKey(['difficulty']))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -435,10 +435,10 @@ describe('JSON Database Integration', () => {
         .select((eb) => [
           'id',
           'name',
-          pg.json(eb.ref('preferences')).path('theme').as('theme_value'),
-          pg.json(eb.ref('preferences')).path(['notifications', 'email']).as('email_setting')
+          pg(eb).json('preferences').path('theme').as('theme_value'),
+          pg(eb).json('preferences').path(['notifications', 'email']).as('email_setting')
         ])
-        .where((eb) => pg.json(eb.ref('preferences')).hasKey('theme'))
+        .where((eb) => pg(eb).json('preferences').hasKey('theme'))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -458,10 +458,10 @@ describe('JSON Database Integration', () => {
         .selectFrom('users')
         .select((eb) => [
           'id',
-          pg.json(eb.ref('preferences')).path(['notifications', 'push']).as('push_notifications'),
-          pg.json(eb.ref('permissions')).path(['read']).as('read_permission')
+          pg(eb).json('preferences').path(['notifications', 'push']).as('push_notifications'),
+          pg(eb).json('permissions').path(['read']).as('read_permission')
         ])
-        .where((eb) => pg.json(eb.ref('preferences')).path(['notifications']).exists())
+        .where((eb) => pg(eb).json('preferences').path(['notifications']).exists())
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -478,10 +478,10 @@ describe('JSON Database Integration', () => {
         .selectFrom('users')
         .select((eb) => [
           'id',
-          pg.json(eb.ref('preferences')).path('theme').as('theme_json'),        // Returns JSON value
-          pg.json(eb.ref('preferences')).path('theme').asText().as('theme_text') // Returns text
+          pg(eb).json('preferences').path('theme').as('theme_json'),        // Returns JSON value
+          pg(eb).json('preferences').path('theme').asText().as('theme_text') // Returns text
         ])
-        .where((eb) => pg.json(eb.ref('preferences')).hasKey('theme'))
+        .where((eb) => pg(eb).json('preferences').hasKey('theme'))
         .limit(5)
         .execute()
 
@@ -506,11 +506,11 @@ describe('JSON Database Integration', () => {
         .select((eb) => [
           'id',
           'name',
-          pg.json(eb.ref('permissions')).path('admin').as('is_admin'),
-          pg.json(eb.ref('preferences')).path(['notifications', 'email']).as('email_notifications'),
-          pg.json(eb.ref('preferences')).path('theme').asText().as('user_theme')
+          pg(eb).json('permissions').path('admin').as('is_admin'),
+          pg(eb).json('preferences').path(['notifications', 'email']).as('email_notifications'),
+          pg(eb).json('preferences').path('theme').asText().as('user_theme')
         ])
-        .where((eb) => pg.json(eb.ref('permissions')).hasKey('admin'))
+        .where((eb) => pg(eb).json('permissions').hasKey('admin'))
         .execute()
 
       expect(results.length).toBeGreaterThan(0)
@@ -533,12 +533,12 @@ describe('JSON Database Integration', () => {
           'id',
           'name',
           'preferences',
-          pg.json(eb.ref('preferences')).path('theme').asText().as('theme'),
-          pg.json(eb.ref('permissions')).path('read').asText().as('can_read')
+          pg(eb).json('preferences').path('theme').asText().as('theme'),
+          pg(eb).json('permissions').path('read').asText().as('can_read')
         ])
-        .where((eb) => pg.json(eb.ref('preferences')).hasKey('theme'))
-        .where((eb) => pg.json(eb.ref('preferences')).contains({notifications: {email: true}}))
-        .where((eb) => pg.json(eb.ref('permissions')).path('read').equals(true))
+        .where((eb) => pg(eb).json('preferences').hasKey('theme'))
+        .where((eb) => pg(eb).json('preferences').contains({notifications: {email: true}}))
+        .where((eb) => pg(eb).json('permissions').path('read').equals(true))
         .orderBy('name')
         .execute()
 
@@ -557,7 +557,7 @@ describe('JSON Database Integration', () => {
         .selectFrom('products')
         .selectAll()
         .where('id', '>', 0)
-        .where((eb) => pg.json(eb.ref('metadata')).path('difficulty').equals('beginner'))
+        .where((eb) => pg(eb).json('metadata').path('difficulty').equals('beginner'))
         .where('name', 'like', '%TypeScript%')
         .execute()
 
@@ -575,7 +575,7 @@ describe('JSON Database Integration', () => {
       const premiumUserIds = db
         .selectFrom('users')
         .select('id')
-        .where((eb) => pg.json(eb.ref('permissions')).contains({admin: true}))
+        .where((eb) => pg(eb).json('permissions').contains({admin: true}))
 
       const results = await db
         .selectFrom('products')
@@ -597,8 +597,8 @@ describe('JSON Database Integration', () => {
           'products.metadata as product_metadata',
           'users.preferences as user_preferences'
         ])
-        .where((eb) => pg.json(eb.ref('products.metadata')).hasKey('difficulty'))
-        .where((eb) => pg.json(eb.ref('users.preferences')).contains({theme: 'dark'}))
+        .where((eb) => pg(eb).json('products.metadata').hasKey('difficulty'))
+        .where((eb) => pg(eb).json('users.preferences').contains({theme: 'dark'}))
         .execute()
 
       expect(Array.isArray(results)).toBe(true)
@@ -643,7 +643,7 @@ describe('JSON Database Integration', () => {
           .selectFrom('users')
           .select(['id', 'name', 'preferences'])
           .where('id', '=', insertResult!.id)
-          .where((eb) => pg.json(eb.ref('preferences')).contains({theme: 'test-theme'}))
+          .where((eb) => pg(eb).json('preferences').contains({theme: 'test-theme'}))
           .execute()
 
         expect(results.length).toBe(1)
@@ -655,7 +655,7 @@ describe('JSON Database Integration', () => {
           .selectFrom('users')
           .select(['id', 'preferences'])
           .where('id', '=', insertResult!.id)
-          .where((eb) => pg.json(eb.ref('preferences')).path(['settings', 'privacy']).equals('public'))
+          .where((eb) => pg(eb).json('preferences').path(['settings', 'privacy']).equals('public'))
           .execute()
 
         expect(nestedResults.length).toBe(1)
@@ -703,7 +703,7 @@ describe('JSON Database Integration', () => {
           .selectFrom('products')
           .select(['id', 'metadata'])
           .where('id', '=', insertResult!.id)
-          .where((eb) => pg.json(eb.ref('metadata')).contains({status: 'published'}))
+          .where((eb) => pg(eb).json('metadata').contains({status: 'published'}))
           .execute()
 
         expect(results.length).toBe(1)
@@ -735,7 +735,7 @@ describe('JSON Database Integration', () => {
       const results = await db
         .selectFrom('products')
         .selectAll()
-        .where((eb) => pg.json(eb.ref('metadata')).hasKey('difficulty'))
+        .where((eb) => pg(eb).json('metadata').hasKey('difficulty'))
         .execute()
       const endTime = Date.now()
 
@@ -772,7 +772,7 @@ describe('JSON Database Integration', () => {
           .selectFrom('products')
           .select(['id', 'metadata'])
           .where('id', '=', insertResult!.id)
-          .where((eb) => pg.json(eb.ref('metadata')).hasKey('unicode'))
+          .where((eb) => pg(eb).json('metadata').hasKey('unicode'))
           .execute()
 
         expect(results.length).toBe(1)
@@ -790,10 +790,10 @@ describe('JSON Database Integration', () => {
     test('concurrent JSON operations', async () => {
       if (skipIfNoDb()) return
       const promises = [
-        db.selectFrom('users').selectAll().where((eb) => pg.json(eb.ref('preferences')).hasKey('theme')).execute(),
-        db.selectFrom('products').selectAll().where((eb) => pg.json(eb.ref('metadata')).contains({published: true})).execute(),
-        db.selectFrom('users').selectAll().where((eb) => pg.json(eb.ref('permissions')).path('read').equals(true)).execute(),
-        db.selectFrom('products').selectAll().where((eb) => pg.json(eb.ref('settings')).hasAnyKey(['theme', 'notifications'])).execute()
+        db.selectFrom('users').selectAll().where((eb) => pg(eb).json('preferences').hasKey('theme')).execute(),
+        db.selectFrom('products').selectAll().where((eb) => pg(eb).json('metadata').contains({published: true})).execute(),
+        db.selectFrom('users').selectAll().where((eb) => pg(eb).json('permissions').path('read').equals(true)).execute(),
+        db.selectFrom('products').selectAll().where((eb) => pg(eb).json('settings').hasAnyKey(['theme', 'notifications'])).execute()
       ]
 
       const results = await Promise.all(promises)

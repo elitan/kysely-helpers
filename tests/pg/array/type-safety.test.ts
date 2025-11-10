@@ -65,9 +65,9 @@ describe('Array Type Safety', () => {
       } as any
 
       // These should work after fix
-      const tagsOp = pg.array(eb.ref('products.tags'))
-      const categoryOp = pg.array(eb.ref('products.category_ids'))
-      const rolesOp = pg.array(eb.ref('users.roles'))
+      const tagsOp = pg(eb).array('products.tags')
+      const categoryOp = pg(eb).array('products.category_ids')
+      const rolesOp = pg(eb).array('users.roles')
 
       expect(tagsOp).toBeDefined()
       expect(categoryOp).toBeDefined()
@@ -77,7 +77,7 @@ describe('Array Type Safety', () => {
     test('should provide operations on valid references', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
-      const tagsOp = pg.array(eb.ref('products.tags'))
+      const tagsOp = pg(eb).array('products.tags')
       const result = tagsOp.hasAllOf(['typescript', 'postgres'])
 
       expect(result).toBeDefined()
@@ -90,10 +90,10 @@ describe('Array Type Safety', () => {
 
       // Currently compiles but shouldn't - 'name' is string, not array
       // @ts-expect-error - After fix: should error because 'name' is not an array
-      const nameOp = pg.array(eb.ref('products.name'))
+      const nameOp = pg(eb).array('products.name')
 
       // @ts-expect-error - After fix: should error because 'email' is not an array
-      const emailOp = pg.array(eb.ref('users.email'))
+      const emailOp = pg(eb).array('users.email')
 
       expect(nameOp).toBeDefined()
       expect(emailOp).toBeDefined()
@@ -103,7 +103,7 @@ describe('Array Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
       // @ts-expect-error - After fix: should error because 'is_featured' is boolean, not array
-      const boolOp = pg.array(eb.ref('products.is_featured'))
+      const boolOp = pg(eb).array('products.is_featured')
 
       expect(boolOp).toBeDefined()
     })
@@ -112,7 +112,7 @@ describe('Array Type Safety', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
       // @ts-expect-error - After fix: should error because 'id' is number, not array
-      const idOp = pg.array(eb.ref('products.id'))
+      const idOp = pg(eb).array('products.id')
 
       expect(idOp).toBeDefined()
     })
@@ -122,7 +122,7 @@ describe('Array Type Safety', () => {
     test('should infer string[] for tags column', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
-      const tagsOp = pg.array(eb.ref('products.tags'))
+      const tagsOp = pg(eb).array('products.tags')
       const result = tagsOp.hasAllOf(['typescript', 'nodejs'])
 
       expect(result).toBeDefined()
@@ -131,7 +131,7 @@ describe('Array Type Safety', () => {
     test('should infer number[] for category_ids column', () => {
       const eb = { ref: (col: string) => ({ __ref: col }) } as any
 
-      const categoryOp = pg.array(eb.ref('products.category_ids'))
+      const categoryOp = pg(eb).array('products.category_ids')
       const result = categoryOp.hasAllOf([1, 2, 3])
 
       expect(result).toBeDefined()
