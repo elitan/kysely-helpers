@@ -1,4 +1,4 @@
-import { sql, type RawBuilder } from 'kysely'
+import { sql, type RawBuilder, type SimpleReferenceExpression } from 'kysely'
 
 /**
  * PostgreSQL vector helper functions (pgvector extension)
@@ -89,37 +89,10 @@ export function embedding(embedding: number[]): RawBuilder<any> {
 }
 
 /**
- * Create PostgreSQL vector operations for a column
- * 
- * @param column Column name or expression
- * @returns Vector operations builder
- * 
- * @example
- * ```ts
- * import { pg } from 'kysely-helpers'
- * 
- * // Semantic search query
- * const searchEmbedding = await openai.embeddings.create({
- *   model: "text-embedding-3-small",
- *   input: userQuery
- * })
- * 
- * const results = await db
- *   .selectFrom('documents')
- *   .select([
- *     'id',
- *     'title',
- *     'content',
- *     pg.vector('embedding').similarity(searchEmbedding.data[0].embedding).as('similarity')
- *   ])
- *   .where(pg.vector('embedding').similarity(searchEmbedding.data[0].embedding), '>', 0.8)
- *   .orderBy('similarity', 'desc')
- *   .limit(10)
- *   .execute()
- * ```
+ * Internal: Create vector operations from a column reference
+ * Used by both simple API and type-safe pg(eb) pattern
  */
-export function vector(column: string): VectorOperations {
-  const columnRef = sql.ref(column)
+export function createVectorOperations(columnRef: any): VectorOperations {
 
   return {
     toArray: () => {
@@ -148,4 +121,17 @@ export function vector(column: string): VectorOperations {
       }
     }
   }
+}
+
+/**
+ * Create PostgreSQL vector operations for a column (simple API)
+ *
+ * For quick prototyping. For type-safe column validation, use pg(eb).vector()
+ *
+ * @param column Column name as string
+ * @returns Vector operations builder
+ */
+export function vector(column: string): VectorOperations {
+  const columnRef = sql.ref(column)
+  return createVectorOperations(columnRef)
 }

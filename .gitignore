@@ -149,3 +149,6 @@ Thumbs.db
 
 # Bun
 bun.lock
+
+# Playground (for local experimentation)
+playground/

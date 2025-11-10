@@ -1,5 +1,8 @@
 import { describe, test, expect } from 'bun:test'
+import { sql } from 'kysely'
 import { pg } from '../../../src/index'
+
+const eb = { ref: (col: string) => sql.ref(col) } as any
 
 describe('Vector SQL Generation Tests', () => {
   describe('API Surface Tests', () => {
@@ -10,14 +13,14 @@ describe('Vector SQL Generation Tests', () => {
     })
 
     test('vector() function exists and returns operations', () => {
-      const vectorOps = pg.vector('embedding')
+      const vectorOps = pg(eb).vector('embedding')
       
       expect(typeof vectorOps.similarity).toBe('function')
       expect(typeof vectorOps.toArray).toBe('function')
     })
 
     test('similarity() method generates expressions', () => {
-      const vectorOps = pg.vector('embedding')
+      const vectorOps = pg(eb).vector('embedding')
       
       expect(() => {
         vectorOps.similarity([1, 2, 3])
@@ -28,7 +31,7 @@ describe('Vector SQL Generation Tests', () => {
     })
 
     test('toArray() method generates expressions', () => {
-      const vectorOps = pg.vector('embedding')
+      const vectorOps = pg(eb).vector('embedding')
       
       expect(() => {
         vectorOps.toArray()
@@ -38,7 +41,7 @@ describe('Vector SQL Generation Tests', () => {
 
   describe('Error Handling', () => {
     test('throws error for unsupported algorithm', () => {
-      const vectorOps = pg.vector('embedding')
+      const vectorOps = pg(eb).vector('embedding')
       
       expect(() => {
         // @ts-expect-error - Testing invalid algorithm

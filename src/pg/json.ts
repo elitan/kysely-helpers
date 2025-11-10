@@ -1,4 +1,4 @@
-import { sql, type Expression, type RawBuilder } from 'kysely'
+import { sql, type Expression, type RawBuilder, type SimpleReferenceExpression } from 'kysely'
 import type { JsonValue } from '../types/index.js'
 
 /**
@@ -243,28 +243,10 @@ export interface JsonOperations extends JsonUpdateOperations {
 }
 
 /**
- * Create PostgreSQL JSON operations for a column
- * 
- * @param column Column name or expression
- * @returns JSON operations builder
- * 
- * @example
- * ```ts
- * import { pg } from 'kysely-helpers'
- * 
- * const results = await db
- *   .selectFrom('users')
- *   .selectAll()
- *   .where(pg.json('preferences').get('theme').equals('dark'))
- *   .where(pg.json('metadata').contains({verified: true}))
- *   .execute()
- * ```
- */
-/**
  * Helper function to determine if a value should use JSON mode (#>) or text mode (#>>)
  */
 function isComplexValue(value: any): boolean {
-  return value !== null && 
+  return value !== null &&
          (typeof value === 'object' || Array.isArray(value))
 }
 
@@ -286,8 +268,11 @@ function serializeTextValue(value: any): string {
   return value.toString()
 }
 
-export function json(column: string): JsonOperations {
-  const columnRef = sql.ref(column)
+/**
+ * Internal: Create JSON operations from a column reference
+ * Used by both simple API and type-safe pg(eb) pattern
+ */
+export function createJsonOperations(columnRef: any): JsonOperations {
 
   return {
     // Update operations
@@ -415,4 +400,17 @@ export function json(column: string): JsonOperations {
       return sql<boolean>`${columnRef} ?| ARRAY[${sql.join(keys)}]`
     }
   }
+}
+
+/**
+ * Create PostgreSQL JSON operations for a column (simple API)
+ *
+ * For quick prototyping. For type-safe column validation, use pg(eb).json()
+ *
+ * @param column Column name as string
+ * @returns JSON operations builder
+ */
+export function json(column: string): JsonOperations {
+  const columnRef = sql.ref(column)
+  return createJsonOperations(columnRef)
 }

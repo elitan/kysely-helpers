@@ -30,18 +30,18 @@ const db = new Kysely<Database>({
   }),
 });
 
-// PostgreSQL-specific operations
+// Type-safe PostgreSQL operations with pg(eb)
 const results = await db
   .selectFrom("documents")
-  .select([
+  .select((eb) => [
     "id",
     "title",
-    pg.array("tags").length().as("tag_count"),
-    pg.json("metadata").path("author").asText().as("author"),
+    pg(eb).array("tags").length().as("tag_count"),
+    pg(eb).json("metadata").path("author").asText().as("author"),
   ])
-  .where(pg.array("tags").hasAllOf(["typescript"])) // tags @> ARRAY['typescript']
-  .where(pg.json("metadata").path("published").equals(true)) // metadata#>'{"published"}' = true
-  .where(pg.vector("embedding").similarTo(searchVector)) // embedding <-> $1 < 0.5
+  .where((eb) => pg(eb).array("tags").hasAllOf(["typescript"])) // tags @> ARRAY['typescript']
+  .where((eb) => pg(eb).json("metadata").path("published").equals(true)) // metadata#>'{"published"}' = true
+  .where((eb) => pg(eb).vector("embedding").similarity(searchVector), '>', 0.8)
   .orderBy("tag_count", "desc")
   .execute();
 ```
@@ -54,29 +54,35 @@ Work with PostgreSQL arrays like JavaScript arrays, but with database-level perf
 import { pg } from 'kysely-helpers'
 
 // Query operations - Array contains all specified values
-.where(pg.array('tags').hasAllOf(['featured']))
-.where(pg.array('tags').hasAllOf(['ai', 'ml']))
+.where((eb) => pg(eb).array('tags').hasAllOf(['featured']))
+.where((eb) => pg(eb).array('tags').hasAllOf(['ai', 'ml']))
 
 // Array contains any of the specified values
-.where(pg.array('categories').hasAnyOf(['tech', 'ai']))
+.where((eb) => pg(eb).array('categories').hasAnyOf(['tech', 'ai']))
 
 // Array length and element access
-.where(pg.array('items').length(), '>', 5)
-.select(pg.array('tags').first().as('first_tag'))
-.select(pg.array('tags').last().as('last_tag'))
+.where((eb) => pg(eb).array('items').length(), '>', 5)
+.select((eb) => [pg(eb).array('tags').first().as('first_tag')])
+.select((eb) => [pg(eb).array('tags').last().as('last_tag')])
 
 // Update operations - Add elements
 await db.updateTable('products')
-  .set({ tags: pg.array('tags').append('new-tag') })
-  .set({ tags: pg.array('tags').append(['tag1', 'tag2']) })
-  .set({ priorities: pg.array('priorities').prepend('urgent') })
+  .set((eb) => ({
+    tags: pg(eb).array('tags').append('new-tag')
+  }))
+  .set((eb) => ({
+    tags: pg(eb).array('tags').append(['tag1', 'tag2']),
+    priorities: pg(eb).array('priorities').prepend('urgent')
+  }))
   .execute()
 
 // Remove elements
 await db.updateTable('products')
-  .set({ tags: pg.array('tags').remove('deprecated') })
-  .set({ queue: pg.array('queue').removeFirst() })
-  .set({ stack: pg.array('stack').removeLast() })
+  .set((eb) => ({
+    tags: pg(eb).array('tags').remove('deprecated'),
+    queue: pg(eb).array('queue').removeFirst(),
+    stack: pg(eb).array('stack').removeLast()
+  }))
   .execute()
 ```
 
@@ -88,24 +94,24 @@ Query and filter JSON data stored in your database without parsing it in your ap
 import { pg } from 'kysely-helpers'
 
 // Query operations - Path navigation and filtering
-.where(pg.json('metadata').path('theme').equals('dark'))
-.where(pg.json('settings').path('language').asText().equals('en'))
-.where(pg.json('data').path(['user', 'preferences']).contains({notifications: true}))
+.where((eb) => pg(eb).json('metadata').path('theme').equals('dark'))
+.where((eb) => pg(eb).json('settings').path('language').asText().equals('en'))
+.where((eb) => pg(eb).json('data').path(['user', 'preferences']).contains({notifications: true}))
 
 // Key and value checks
-.where(pg.json('profile').contains({verified: true}))
-.where(pg.json('permissions').hasKey('admin'))
-.where(pg.json('metadata').hasAllKeys(['title', 'author']))
+.where((eb) => pg(eb).json('profile').contains({verified: true}))
+.where((eb) => pg(eb).json('permissions').hasKey('admin'))
+.where((eb) => pg(eb).json('metadata').hasAllKeys(['title', 'author']))
 
 // Update operations - Set, increment, remove, and push operations
 await db.updateTable('users')
-  .set({
-    metadata: pg.json('metadata').set('theme', 'dark'),
-    settings: pg.json('settings').set(['user', 'preferences', 'lang'], 'es'),
-    stats: pg.json('stats').increment('points', 10),
-    cache: pg.json('cache').remove('temp_data'),
-    tags: pg.json('tags').push('premium')
-  })
+  .set((eb) => ({
+    metadata: pg(eb).json('metadata').set('theme', 'dark'),
+    settings: pg(eb).json('settings').set(['user', 'preferences', 'lang'], 'es'),
+    stats: pg(eb).json('stats').increment('points', 10),
+    cache: pg(eb).json('cache').remove('temp_data'),
+    tags: pg(eb).json('tags').push('premium')
+  }))
   .where('id', '=', userId)
   .execute()
 ```
@@ -135,22 +141,22 @@ await db
 // Semantic search with similarity (0-1 scale, higher = more similar)
 const results = await db
   .selectFrom("documents")
-  .select([
+  .select((eb) => [
     "id",
-    "title", 
+    "title",
     "content",
-    pg.vector("embedding").similarity(searchVector).as("similarity")
+    pg(eb).vector("embedding").similarity(searchVector).as("similarity")
   ])
-  .where(pg.vector("embedding").similarity(searchVector), '>', 0.8)
+  .where((eb) => pg(eb).vector("embedding").similarity(searchVector), '>', 0.8)
   .orderBy("similarity", "desc")
   .limit(10)
   .execute()
 
 // Different similarity algorithms: 'cosine' (default), 'euclidean', 'dot'
-.where(pg.vector("embedding").similarity(searchVector, 'cosine'), '>', 0.8)
+.where((eb) => pg(eb).vector("embedding").similarity(searchVector, 'cosine'), '>', 0.8)
 
 // Convert vectors back to JavaScript arrays
-.select(["id", "title", pg.vector("embedding").toArray().as("embedding")])
+.select((eb) => ["id", "title", pg(eb).vector("embedding").toArray().as("embedding")])
 ```
 
 **Key features:** `pg.embedding()` for insertion, `pg.vector().similarity()` for search, `pg.vector().toArray()` for conversion. AI-native design for OpenAI, Anthropic, and other embedding providers.

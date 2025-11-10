@@ -75,15 +75,16 @@ afterAll(async () => {
   }
 })
 
+
 describe('Array Security Tests', () => {
   describe('SQL Injection Prevention - Compilation Tests', () => {
     test('malicious SQL in hasAllOf() is parameterized', () => {
       const maliciousInput = "'; DROP TABLE products; --"
-      
+
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([maliciousInput]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([maliciousInput]))
       
       const compiled = query.compile()
       
@@ -104,7 +105,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf(maliciousArray))
+        .where((eb) => pg(eb).array('tags').hasAllOf(maliciousArray))
       
       const compiled = query.compile()
       
@@ -130,7 +131,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('categories').hasAnyOf(maliciousValues))
+        .where((eb) => pg(eb).array('categories').hasAnyOf(maliciousValues))
       
       const compiled = query.compile()
       
@@ -148,7 +149,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAnyOf(maliciousConstraints))
+        .where((eb) => pg(eb).array('tags').hasAnyOf(maliciousConstraints))
       
       const compiled = query.compile()
       
@@ -163,7 +164,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([unionAttack]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([unionAttack]))
       
       const compiled = query.compile()
       
@@ -178,7 +179,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([nestedAttack]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([nestedAttack]))
       
       const compiled = query.compile()
       
@@ -193,7 +194,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([timeAttack]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([timeAttack]))
       
       const compiled = query.compile()
       
@@ -210,7 +211,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([valueWithQuotes]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([valueWithQuotes]))
       
       const compiled = query.compile()
       
@@ -224,7 +225,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([valueWithDoubleQuotes]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([valueWithDoubleQuotes]))
       
       const compiled = query.compile()
       
@@ -237,7 +238,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([valueWithBackslashes]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([valueWithBackslashes]))
       
       const compiled = query.compile()
       
@@ -250,7 +251,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([valueWithNullByte]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([valueWithNullByte]))
       
       const compiled = query.compile()
       
@@ -263,7 +264,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAnyOf(unicodeValues))
+        .where((eb) => pg(eb).array('tags').hasAnyOf(unicodeValues))
       
       const compiled = query.compile()
       
@@ -276,7 +277,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([controlChars]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([controlChars]))
       
       const compiled = query.compile()
       
@@ -291,7 +292,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([longString]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([longString]))
       
       const compiled = query.compile()
       
@@ -305,7 +306,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([emptyString]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([emptyString]))
       
       const compiled = query.compile()
       
@@ -325,7 +326,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf(dangerousArray))
+        .where((eb) => pg(eb).array('tags').hasAllOf(dangerousArray))
       
       const compiled = query.compile()
       
@@ -347,7 +348,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAnyOf(sqlKeywords))
+        .where((eb) => pg(eb).array('tags').hasAnyOf(sqlKeywords))
       
       const compiled = query.compile()
       
@@ -380,7 +381,7 @@ describe('Array Security Tests', () => {
         const results = await integrationDb
           .selectFrom('products')
           .selectAll()
-          .where(pg.array('tags').hasAllOf([maliciousInput]))
+          .where((eb) => pg(eb).array('tags').hasAllOf([maliciousInput]))
           .execute()
 
         expect(Array.isArray(results)).toBe(true)
@@ -428,7 +429,7 @@ describe('Array Security Tests', () => {
           const results = await integrationDb
             .selectFrom('products')
             .select(['id', 'name', 'tags'])
-            .where(pg.array('tags').hasAllOf([specialChar]))
+            .where((eb) => pg(eb).array('tags').hasAllOf([specialChar]))
             .execute()
 
           expect(results.length).toBeGreaterThan(0)
@@ -461,7 +462,7 @@ describe('Array Security Tests', () => {
         integrationDb!
           .selectFrom('products')
           .selectAll()
-          .where(pg.array('tags').hasAllOf([maliciousQuery]))
+          .where((eb) => pg(eb).array('tags').hasAllOf([maliciousQuery]))
           .execute()
       )
 
@@ -491,7 +492,7 @@ describe('Array Security Tests', () => {
       const results = await integrationDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAnyOf(manyTags))
+        .where((eb) => pg(eb).array('tags').hasAnyOf(manyTags))
         .execute()
 
       // Should execute without error
@@ -504,7 +505,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf(['test']))
+        .where((eb) => pg(eb).array('tags').hasAllOf(['test']))
       
       const compiled = query.compile()
       
@@ -517,7 +518,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('products.tags').hasAllOf(['test']))
+        .where((eb) => pg(eb).array('products.tags').hasAllOf(['test']))
       
       const compiled = query.compile()
       
@@ -529,7 +530,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags"; DROP TABLE users; --').hasAllOf(['test']))
+        .where((eb) => pg(eb).array('tags"; DROP TABLE users; --').hasAllOf(['test']))
       
       const compiled = query.compile()
       
@@ -551,7 +552,7 @@ describe('Array Security Tests', () => {
       const query = compileDb
         .selectFrom('products')
         .selectAll()
-        .where(pg.array('tags').hasAllOf([]))
+        .where((eb) => pg(eb).array('tags').hasAllOf([]))
       
       const compiled = query.compile()
       
@@ -565,7 +566,7 @@ describe('Array Security Tests', () => {
         const query = compileDb
           .selectFrom('products')
           .selectAll()
-          .where(pg.array('tags').hasAllOf(['null']))
+          .where((eb) => pg(eb).array('tags').hasAllOf(['null']))
         
         query.compile()
       }).not.toThrow()
@@ -576,9 +577,9 @@ describe('Array Security Tests', () => {
         .selectFrom('products')
         .select([
           'id',
-          pg.array('tags').length().as('tag_count')
+          (eb) => pg(eb).array('tags').length().as('tag_count')
         ])
-        .where(pg.array('tags').length(), '>', 0)
+        .where((eb) => pg(eb).array('tags').length(), '>', 0)
       
       const compiled = query.compile()
       
